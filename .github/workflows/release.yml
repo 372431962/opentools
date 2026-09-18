@@ -47,6 +47,12 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
+      - name: Run schedule regression tests
+        shell: pwsh
+        run: |
+          dotnet run --project tests/DesktopCalendarWidget.ScheduleTests -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Schedule regression tests failed' }
+
       - name: Install WiX
         shell: pwsh
         run: dotnet tool install --global wix --version 5.0.2

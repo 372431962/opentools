@@ -4,13 +4,13 @@
 #   dotnet tool install --global wix --version 5.0.2
 #   pwsh -File .\build-installer.ps1 -DotNet dotnet
 #
-# 产物：..\artifacts\DesktopCalendarWidget-1.3.0-win-x64.msi
+# 产物：..\artifacts\DesktopCalendarWidget-1.3.1-win-x64.msi
 
 param(
     [string]$DotNet = 'dotnet',
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
-    [string]$Version = '1.3.0'
+    [string]$Version = '1.3.1'
 )
 
 $ErrorActionPreference = 'Stop'

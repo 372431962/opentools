@@ -39,7 +39,16 @@
 | 每周单休 | 每周只休所选的周六或周日 |
 | 隔周单休（大小周） | 单休周和双休周逐周交替，单休周休所选的一天，双休周休周六、周日 |
 
-配置大小周时，选择单休日，并用「本周是单休周」指定本周状态：勾选表示单休，不勾选表示双休。一周以**周一**为起点；首次设置或修改本周状态时，将本周周一记为锚点，向前、向后按周交替推算。仅修改透明度等无关选项不会重设已有锚点。
+配置大小周时，选择单休日，并用「本周是单休周」指定本周状态：勾选表示单休，不勾选表示双休。一周以**周一**为起点；首次设置、切换到隔周单休或修改本周状态时，将界面所示本周周一记为基准。仅修改透明度等无关选项不会重设已有基准。
+
+从基准周向后，按周末调休后的实际休息天数推算：
+
+- 原双休周因周六补班变成单休，下一周改为双休，此后继续交替。
+- 原单休周因周末放假变成双休，下一周改为单休，此后继续交替。
+- 周中放假或补班不改变周末大小周顺序；周末两天都上班时，保持该周原计划的交替节奏，不把零休误当双休。
+- 放假、补班先覆盖当天，再决定后续周次。手动基准周之前仍按原自然周奇偶回推并覆盖当天安排；历史调休不会反过来改变已手动确定的基准。
+
+推算需要对应日期的放假/补班记录。缺少年度数据时，请先使用手动更新或本地编辑补齐。
 
 配色与标记：
 
@@ -48,7 +57,7 @@
 - **「休」**：排班休息日；有节假日名称时优先显示名称。
 - 单休周需要上班的周末日期显示普通颜色，节假日数据另有标记时除外。
 
-节假日和调休标记需开启设置中的节假日显示选项。
+节假日显示选项只控制节日名称和「班」文字，不改变当天实际作息、着色或后续大小周顺序。关闭名称显示后，补班日也不会重新标成「休」。
 
 ## 节假日数据与手动更新
 
@@ -114,30 +123,36 @@ dotnet build .\DesktopCalendarWidget.csproj -c Release
 dotnet run --project .\DesktopCalendarWidget.csproj
 ```
 
-生成 **1.3.0** 的 Windows x64 安装包，使用 **WiX 5.0.2**：
+生成 **1.3.1** 的 Windows x64 安装包，使用 **WiX 5.0.2**：
 
 ```powershell
 dotnet tool install --global wix --version 5.0.2
-powershell -File .\installer\build-installer.ps1 -DotNet dotnet -Version 1.3.0
+powershell -File .\installer\build-installer.ps1 -DotNet dotnet -Version 1.3.1
 ```
 
 运行前确保 `dotnet` 和 `wix` 命令可用。脚本先执行自包含单文件发布，再生成 MSI，产物为：
 
 ```text
-artifacts\DesktopCalendarWidget-1.3.0-win-x64.msi
+artifacts\DesktopCalendarWidget-1.3.1-win-x64.msi
 ```
 
 可双击安装，或执行：
 
 ```powershell
-msiexec /i "artifacts\DesktopCalendarWidget-1.3.0-win-x64.msi"
+msiexec /i "artifacts\DesktopCalendarWidget-1.3.1-win-x64.msi"
 ```
 
 发布新版本时递增 `-Version`；脚本将该版本同时传给应用发布和 MSI 打包。
 
+排班回归测试位于仓库根目录的 `tests/DesktopCalendarWidget.ScheduleTests`，直接链接生产排班源码，无第三方测试包依赖。从仓库根目录运行：
+
+```powershell
+dotnet run --project tests/DesktopCalendarWidget.ScheduleTests -c Release
+```
+
 ### GitHub Release 自动发布
 
-仓库的 `.github/workflows/release.yml` 在推送 `v1.3.0` 这类版本标签时，使用 Windows 构建器生成 MSI 和 `SHA256SUMS.txt`，并创建对应 Release。标签中的版本号会传入打包脚本；上传成功后才公开 Release。发布说明取自本目录的 `RELEASE_NOTES.md`，后续发布前应同步更新。
+仓库的 `.github/workflows/release.yml` 在推送 `v1.3.1` 这类版本标签时，先运行排班回归测试，再使用 Windows 构建器生成 MSI 和 `SHA256SUMS.txt`，并创建对应 Release。标签中的版本号会传入打包脚本；上传成功后才公开 Release。发布说明取自本目录的 `RELEASE_NOTES.md`，后续发布前应同步更新。
 
 工作流也支持手动运行并指定已有标签，便于重试失败的构建。需要仓库启用 GitHub Actions；发布使用工作流自带的 `GITHUB_TOKEN`，不需要把个人令牌保存在源码中。
 
@@ -146,7 +161,7 @@ msiexec /i "artifacts\DesktopCalendarWidget-1.3.0-win-x64.msi"
 - 仅面向 Windows；当前打包脚本生成 x64 安装包。
 - 农历依赖 `ChineseLunisolarCalendar`，支持 1901-02-19 至 2101-01-28，超出范围不显示农历。
 - 内置节假日数据不完整，公开更新接口的可用性和数据完整性也不作保证。
-- 隔周单休固定以周一为周界交替，不支持按月指定周次等复杂排班。
+- 隔周单休以周一为周界，按基准与周末调休顺延，不支持按月指定周次等复杂排班。
 - 全局快捷键可能冲突，可使用托盘菜单操作。
 
 构建、安装升级和界面交互需在目标 Windows 环境中验证；本说明不将历史本机检查视为全面兼容性保证。

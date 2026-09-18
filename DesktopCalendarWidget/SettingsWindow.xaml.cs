@@ -13,7 +13,9 @@ public partial class SettingsWindow : Window
     private readonly SettingsService settingsService = new();
     private readonly HolidayService holidayService = new();
     private readonly DateTime currentWeekStart = RestSchedule.WeekStart(DateTime.Today);
-    private readonly bool anchorWeekIsSingleAtLoad;
+    private readonly RestPattern originalRestPattern;
+    private bool anchorWeekIsSingleAtLoad;
+    private bool scheduleReady;
 
     public WidgetSettings Settings { get; private set; }
     public List<HolidayEntry> Holidays { get; private set; }
@@ -22,6 +24,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         Settings = settings;
+        originalRestPattern = settings.RestPattern;
         Holidays = holidays.ToList();
 
         ShowLunarCheck.IsChecked = settings.ShowLunar;
@@ -40,20 +43,60 @@ public partial class SettingsWindow : Window
         };
         SingleRestCombo.SelectedIndex = settings.SingleRestDay == SingleRestDay.Saturday ? 0 : 1;
 
-        // 勾选初值按现有锚点推算出的“本周实际状态”，这样改其他选项再保存不会打乱大小周节奏。
-        anchorWeekIsSingleAtLoad = settings.RestPattern == RestPattern.Alternate
-            ? RestSchedule.IsSingleRestWeek(DateTime.Today, settings.AnchorWeekStart, settings.AnchorWeekIsSingleRest)
-            : true;
+        anchorWeekIsSingleAtLoad = originalRestPattern != RestPattern.Alternate ||
+            RestSchedule.GetWeekSchedule(currentWeekStart, settings, RestSchedule.CreateHolidayMap(Holidays)).IsSingleRestWeek;
         AnchorSingleCheck.IsChecked = anchorWeekIsSingleAtLoad;
-        AnchorWeekText.Text =
-            $"本周：{currentWeekStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}（周一） ~ " +
-            $"{currentWeekStart.AddDays(6).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}（周日）";
+        scheduleReady = true;
+        RefreshCurrentWeek();
 
         UpdateAlternatePanel();
         RefreshHolidayEditor();
     }
 
-    private void RestPatternCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateAlternatePanel();
+    private void RestPatternCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateAlternatePanel();
+        RefreshCurrentWeek();
+    }
+
+    private void SingleRestCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => RefreshCurrentWeek();
+
+    private void AnchorSingleCheck_Click(object sender, RoutedEventArgs e) => RefreshCurrentWeek();
+
+    private void HolidayJsonBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (scheduleReady && TryReadHolidayEditor(out var parsed))
+        {
+            Holidays = parsed;
+            RefreshCurrentWeek();
+        }
+    }
+
+    private void RefreshCurrentWeek()
+    {
+        if (!scheduleReady) return;
+        var manuallyChanged = (AnchorSingleCheck.IsChecked == true) != anchorWeekIsSingleAtLoad;
+        var preview = new WidgetSettings
+        {
+            RestPattern = RestPattern.Alternate,
+            SingleRestDay = SingleRestCombo.SelectedIndex == 0 ? SingleRestDay.Saturday : SingleRestDay.Sunday,
+            AnchorWeekStart = Settings.AnchorWeekStart,
+            AnchorWeekIsSingleRest = Settings.AnchorWeekIsSingleRest
+        };
+        RestSchedule.ApplyAnchorSelection(preview, originalRestPattern, currentWeekStart,
+            AnchorSingleCheck.IsChecked == true, manuallyChanged);
+        var week = RestSchedule.GetWeekSchedule(currentWeekStart, preview, RestSchedule.CreateHolidayMap(Holidays));
+        // 数据更新可以刷新自动初值，但保留用户尚未保存的手动选择。
+        if (!manuallyChanged && originalRestPattern == RestPattern.Alternate)
+        {
+            anchorWeekIsSingleAtLoad = week.IsSingleRestWeek;
+            AnchorSingleCheck.IsChecked = anchorWeekIsSingleAtLoad;
+        }
+        AnchorWeekText.Text =
+            $"本周：{currentWeekStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}（周一） ~ " +
+            $"{currentWeekStart.AddDays(6).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}（周日）" +
+            $"\n按当前数据，周末实际休息 {week.WeekendRestDays} 天（调休优先）。";
+    }
 
     private void UpdateAlternatePanel()
     {
@@ -87,6 +130,7 @@ public partial class SettingsWindow : Window
             Holidays = Holidays.Where(x => !downloaded.Any(y => y.Date == x.Date)).Concat(downloaded).ToList();
             settingsService.SaveHolidays(Holidays);
             RefreshHolidayEditor();
+            RefreshCurrentWeek();
             UpdateStatus.Text = $"更新完成：获取 {downloaded.Count} 条，已保存到本地。";
         }
         catch (Exception ex)
@@ -123,6 +167,7 @@ public partial class SettingsWindow : Window
         if (!TryReadHolidayEditor(out var parsed)) return;
         Holidays = parsed;
         settingsService.SaveHolidays(Holidays);
+        RefreshCurrentWeek();
         UpdateStatus.Text = $"已保存 {Holidays.Count} 条本地数据。";
     }
 
@@ -134,6 +179,7 @@ public partial class SettingsWindow : Window
             {
                 Holidays = parsed;
                 settingsService.SaveHolidays(Holidays);
+                RefreshCurrentWeek();
             }
             Directory.CreateDirectory(settingsService.DataFolder);
             Process.Start(new ProcessStartInfo("explorer.exe", settingsService.DataFolder) { UseShellExecute = true });
@@ -148,6 +194,7 @@ public partial class SettingsWindow : Window
     {
         if (!TryReadHolidayEditor(out var parsed)) return;
         Holidays = parsed;
+        RefreshCurrentWeek();
 
         Settings.ShowLunar = ShowLunarCheck.IsChecked == true;
         Settings.ShowHolidays = ShowHolidayCheck.IsChecked == true;
@@ -163,16 +210,8 @@ public partial class SettingsWindow : Window
         };
         Settings.SingleRestDay = SingleRestCombo.SelectedIndex == 0 ? SingleRestDay.Saturday : SingleRestDay.Sunday;
 
-        if (Settings.RestPattern == RestPattern.Alternate)
-        {
-            var anchorIsSingle = AnchorSingleCheck.IsChecked == true;
-            // 只在“锚点缺失”或“用户改了本周状态”时重设锚点，避免每次保存都移动锚点。
-            if (Settings.AnchorWeekStart is null || anchorIsSingle != anchorWeekIsSingleAtLoad)
-            {
-                Settings.AnchorWeekStart = currentWeekStart;
-                Settings.AnchorWeekIsSingleRest = anchorIsSingle;
-            }
-        }
+        RestSchedule.ApplyAnchorSelection(Settings, originalRestPattern, currentWeekStart,
+            AnchorSingleCheck.IsChecked == true, (AnchorSingleCheck.IsChecked == true) != anchorWeekIsSingleAtLoad);
 
         var urlTemplate = UpdateUrlBox.Text.Trim();
         if (urlTemplate.Contains("{0}", StringComparison.Ordinal)) Settings.HolidayUpdateUrl = urlTemplate;

@@ -10,7 +10,8 @@
             <StackPanel>
                 <TextBlock Text="显示" FontWeight="SemiBold" Foreground="#2B2925"/>
                 <CheckBox x:Name="ShowLunarCheck" Content="显示农历" Margin="0,10,0,0"/>
-                <CheckBox x:Name="ShowHolidayCheck" Content="显示节假日和调休标记" Margin="0,8,0,0"/>
+                <CheckBox x:Name="ShowHolidayCheck" Content="显示节假日名称和调休“班”字" Margin="0,8,0,0"/>
+                <TextBlock Text="关闭文字仍按节假日、调休计算休息与上班，并调整后续大小周。" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
 
                 <TextBlock Text="休息日" FontWeight="SemiBold" Margin="0,22,0,0" Foreground="#2B2925"/>
                 <TextBlock Text="休息日模式" Margin="0,10,0,6" Foreground="#817B70"/>
@@ -20,14 +21,14 @@
                     <ComboBoxItem Content="隔周单休（大小周）"/>
                 </ComboBox>
                 <TextBlock Text="单休日" Margin="0,12,0,6" Foreground="#817B70"/>
-                <ComboBox x:Name="SingleRestCombo" Width="240" HorizontalAlignment="Left">
+                <ComboBox x:Name="SingleRestCombo" Width="240" HorizontalAlignment="Left" SelectionChanged="SingleRestCombo_SelectionChanged">
                     <ComboBoxItem Content="周六"/>
                     <ComboBoxItem Content="周日"/>
                 </ComboBox>
                 <StackPanel x:Name="AlternatePanel" Visibility="Collapsed" Margin="0,12,0,0">
-                    <CheckBox x:Name="AnchorSingleCheck" Content="本周是单休周"/>
+                    <CheckBox x:Name="AnchorSingleCheck" Content="本周是单休周" Click="AnchorSingleCheck_Click"/>
                     <TextBlock x:Name="AnchorWeekText" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#817B70"/>
-                    <TextBlock Text="单休周只休上面选的单休日；双休周周六、周日都休息。保存后按此设置每周交替。" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
+                    <TextBlock Text="单休周休所选单休日；双休周休周六、周日。周末调休后休1天，下周双休；休2天，下周单休，并继续交替。周末无休则按原计划翻转，周中放假不改变交替。更改本周选择会以本周为新基准，法定调休仍优先；仅改其他选项会保留原基准。" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
                 </StackPanel>
 
                 <TextBlock Text="窗口" FontWeight="SemiBold" Margin="0,24,0,0" Foreground="#2B2925"/>
@@ -47,7 +48,7 @@
 
                 <TextBlock Text="本地数据编辑" FontWeight="SemiBold" Margin="0,24,0,0" Foreground="#2B2925"/>
                 <TextBlock Text="每行一个 JSON 对象，例如：{&quot;Date&quot;:&quot;2026-10-01&quot;,&quot;Name&quot;:&quot;国庆节&quot;,&quot;IsWorkday&quot;:false}" TextWrapping="Wrap" Margin="0,8,0,6" Foreground="#817B70"/>
-                <TextBox x:Name="HolidayJsonBox" Height="120" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                <TextBox x:Name="HolidayJsonBox" Height="120" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" LostFocus="HolidayJsonBox_LostFocus"/>
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <Button Content="保存本地节假日数据" Padding="12,7" Click="SaveHolidayButton_Click"/>
                     <Button Content="打开数据目录" Margin="8,0,0,0" Padding="12,7" Click="OpenDataFolderButton_Click"/>

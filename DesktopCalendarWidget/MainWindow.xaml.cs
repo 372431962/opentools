@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private readonly SettingsService settingsService = new();
     private WidgetSettings settings = new();
     private List<HolidayEntry> holidays = [];
+    private IReadOnlyDictionary<DateTime, HolidayEntry> holidayMap = new Dictionary<DateTime, HolidayEntry>();
     private DateTime displayedMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private HwndSource? windowSource;
     private IntPtr windowHandle;
@@ -176,7 +177,15 @@ public partial class MainWindow : Window
         var lunar = LunarCalendarConverter.Format(today);
         if (!string.IsNullOrEmpty(lunar)) text += " " + lunar;
         if (settings.RestPattern != RestPattern.None)
-            text += RestSchedule.IsSingleRestWeek(today, settings.AnchorWeekStart, settings.AnchorWeekIsSingleRest) ? " · 本周单休" : " · 本周双休";
+        {
+            var week = RestSchedule.GetWeekSchedule(today, settings, holidayMap);
+            text += week.WeekendRestDays switch
+            {
+                0 => " · 本周周末无休",
+                1 => " · 本周单休",
+                _ => " · 本周双休"
+            };
+        }
         return text;
     }
 
@@ -225,6 +234,7 @@ public partial class MainWindow : Window
 
     private void RenderCalendar()
     {
+        holidayMap = RestSchedule.CreateHolidayMap(holidays);
         MonthTitle.Text = displayedMonth.ToString("yyyy年 M月", CultureInfo.InvariantCulture);
         MonthCaption.Text = LunarCalendarConverter.GetYearLabel(displayedMonth);
         TodaySummary.Text = $"今天 {DateTime.Today.ToString("yyyy年M月d日", CultureInfo.InvariantCulture)} · {LunarCalendarConverter.Format(DateTime.Today)}";
@@ -258,31 +268,27 @@ public partial class MainWindow : Window
 
         var startOffset = (int)displayedMonth.DayOfWeek;
         var daysInMonth = DateTime.DaysInMonth(displayedMonth.Year, displayedMonth.Month);
-        var holidayMap = holidays
-            .Where(x => x.DateValue != DateTime.MinValue)
-            .GroupBy(x => x.DateValue)
-            .ToDictionary(x => x.Key, x => x.First());
 
         for (var cell = 0; cell < 42; cell++)
         {
             var dayNumber = cell - startOffset + 1;
             if (dayNumber < 1 || dayNumber > daysInMonth) continue;
             var date = displayedMonth.AddDays(dayNumber - 1);
-            var dayButton = BuildDayButton(date, holidayMap.TryGetValue(date.Date, out var holiday) ? holiday : null);
+            var dayButton = BuildDayButton(date, RestSchedule.GetDaySchedule(date, settings, holidayMap));
             Grid.SetRow(dayButton, cell / 7 + 1);
             Grid.SetColumn(dayButton, cell % 7);
             CalendarGrid.Children.Add(dayButton);
         }
     }
 
-    private Button BuildDayButton(DateTime date, HolidayEntry? holiday)
+    private Button BuildDayButton(DateTime date, DaySchedule schedule)
     {
         var isToday = date.Date == DateTime.Today;
-        var isWeekend = date.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday;
         var usesRestSchedule = settings.RestPattern != RestPattern.None;
-        var isRestDay = RestSchedule.IsRestDay(date, settings.RestPattern, settings.SingleRestDay, settings.AnchorWeekStart, settings.AnchorWeekIsSingleRest);
-        var isWorkdayAdjustment = settings.ShowHolidays && holiday?.IsWorkday == true;
-        var isHoliday = settings.ShowHolidays && holiday?.IsHoliday == true;
+        var holiday = schedule.Holiday;
+        var isRestDay = schedule.IsRestDay;
+        var isWorkdayAdjustment = schedule.IsWorkdayAdjustment;
+        var isHoliday = schedule.IsHoliday;
 
         var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         stack.Children.Add(new TextBlock
@@ -306,16 +312,16 @@ public partial class MainWindow : Window
 
         var marker = "";
         var markerBrush = "Accent";
-        if (isWorkdayAdjustment)
+        if (settings.ShowHolidays && isWorkdayAdjustment)
         {
             marker = "班";
             markerBrush = "Workday";
         }
-        else if (isHoliday)
+        else if (settings.ShowHolidays && isHoliday)
         {
             marker = ShortHolidayName(holiday?.Name);
         }
-        else if (isRestDay)
+        else if (usesRestSchedule && isRestDay)
         {
             marker = "休";
         }
@@ -339,11 +345,11 @@ public partial class MainWindow : Window
             BorderThickness = new Thickness(isToday ? 1.5 : 0.5),
             BorderBrush = isToday ? FindBrush("Accent") : FindBrush("Border"),
             Background = isToday ? new SolidColorBrush(Color.FromRgb(241, 232, 221)) : Brushes.Transparent,
-            ToolTip = BuildToolTip(date, holiday)
+            ToolTip = BuildToolTip(date, settings.ShowHolidays ? holiday : null)
         };
 
         if (isWorkdayAdjustment) button.Foreground = FindBrush("Workday");
-        else if (isHoliday || isRestDay || (!usesRestSchedule && isWeekend)) button.Foreground = FindBrush("Weekend");
+        else if (isRestDay) button.Foreground = FindBrush("Weekend");
 
         button.MouseDoubleClick += (_, _) => GoToToday();
         return button;
@@ -358,7 +364,7 @@ public partial class MainWindow : Window
     private static string BuildToolTip(DateTime date, HolidayEntry? holiday)
     {
         var dateText = date.ToString("yyyy年M月d日", CultureInfo.InvariantCulture);
-        if (holiday is null) return dateText;
+        if (holiday is null || (!holiday.IsWorkday && !holiday.IsHoliday)) return dateText;
         return $"{dateText} · {holiday.Name}{(holiday.IsWorkday ? "（调休上班）" : "（放假）")}";
     }
 
