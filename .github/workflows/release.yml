@@ -1,0 +1,95 @@
+name: Build and release desktop calendar
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag, for example v1.3.0'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      DOTNET_ROLL_FORWARD: Major
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+
+      - name: Validate version
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v(\d+\.\d+\.\d+)$') {
+            throw 'Release tag must have the form v1.3.0'
+          }
+          "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          "tag=$env:RELEASE_TAG" >> $env:GITHUB_OUTPUT
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install WiX
+        shell: pwsh
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Build Windows x64 installer
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: ./DesktopCalendarWidget/installer/build-installer.ps1 -Version $env:RELEASE_VERSION
+
+      - name: Compute SHA-256
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $file = Get-Item "DesktopCalendarWidget/artifacts/DesktopCalendarWidget-$env:RELEASE_VERSION-win-x64.msi"
+          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($file.Name)" | Set-Content DesktopCalendarWidget/artifacts/SHA256SUMS.txt -Encoding utf8NoBOM
+
+      - name: Keep build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-calendar-${{ steps.version.outputs.version }}-win-x64
+          path: |
+            DesktopCalendarWidget/artifacts/*.msi
+            DesktopCalendarWidget/artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $msi = "DesktopCalendarWidget/artifacts/DesktopCalendarWidget-$env:RELEASE_VERSION-win-x64.msi"
+          gh release view $env:RELEASE_TAG *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:RELEASE_TAG --verify-tag --draft --title "DesktopCalendarWidget $env:RELEASE_VERSION" --notes-file DesktopCalendarWidget/RELEASE_NOTES.md
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create release draft' }
+          }
+          gh release upload $env:RELEASE_TAG $msi DesktopCalendarWidget/artifacts/SHA256SUMS.txt --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Could not upload release assets' }
+          gh release edit $env:RELEASE_TAG --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish release' }

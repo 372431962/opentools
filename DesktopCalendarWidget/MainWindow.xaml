@@ -1,0 +1,41 @@
+<Window x:Class="DesktopCalendarWidget.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="474" Height="566" MinWidth="420" MinHeight="510"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ShowInTaskbar="False" ResizeMode="CanResize" Topmost="False" Icon="/Assets/app.ico"
+        Title="桌面日历">
+    <Border x:Name="Chrome" Margin="10" Padding="16" CornerRadius="14"
+            Background="{StaticResource WindowBackground}" BorderBrush="{StaticResource Border}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="18" ShadowDepth="4" Opacity="0.18" Color="#55493E"/>
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock x:Name="MonthTitle" FontSize="25" FontWeight="SemiBold" Foreground="{StaticResource Ink}"/>
+                    <TextBlock x:Name="TodaySummary" Margin="0,3,0,0" FontSize="12" Foreground="{StaticResource MutedInk}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="TodayButton" Content="今天" Click="TodayButton_Click" Margin="0,2,2,0" Padding="8,5"/>
+                    <Button Content="⋯" FontSize="20" Width="34" Height="32" Padding="0" Click="MenuButton_Click" ToolTip="打开菜单"/>
+                </StackPanel>
+            </Grid>
+            <Grid Grid.Row="1" Margin="0,16,0,8" Background="Transparent">
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                <Button Content="‹" FontSize="24" Width="38" Height="32" Click="PreviousButton_Click" ToolTip="上个月"/>
+                <TextBlock x:Name="MonthCaption" Grid.Column="1" VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource MutedInk}"/>
+                <Button Grid.Column="2" Content="›" FontSize="24" Width="38" Height="32" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="下个月"/>
+            </Grid>
+            <Grid x:Name="CalendarGrid" Grid.Row="2"/>
+            <StackPanel Grid.Row="3" Margin="0,12,0,0">
+                <Border Height="1" Background="{StaticResource Border}"/>
+                <TextBlock x:Name="Legend" Margin="0,9,0,0" FontSize="11" Foreground="{StaticResource MutedInk}" Text="红色：节假日   橙色：调休上班   休：单休日   双击日期回到本月"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

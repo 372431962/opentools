@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="桌面日历挂件"
+           Manufacturer="DesktopCalendarWidget"
+           Version="$(Version)"
+           UpgradeCode="8F1B9D2C-3E4A-4B77-9C51-2A6D0F7E5B31"
+           Scope="perUser"
+           Compressed="yes">
+
+    <SummaryInformation Description="桌面日历挂件安装包" Manufacturer="DesktopCalendarWidget" />
+
+    <MajorUpgrade DowngradeErrorMessage="已安装更高版本的桌面日历挂件，请先卸载。" />
+    <MediaTemplate EmbedCab="yes" />
+    <!-- 按用户安装：MSI 引擎需要这两个属性才会把注册信息写入 HKCU 并免管理员权限。 -->
+    <Property Id="ALLUSERS" Value="2" />
+    <Property Id="MSIINSTALLPERUSER" Value="1" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="DesktopCalendarWidget" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Feature Id="Main" Title="桌面日历挂件" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentGroupRef Id="StartMenuShortcuts" />
+      <ComponentGroupRef Id="DesktopShortcuts" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="AppFiles" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.publish)\**" />
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="StartMenuShortcuts" Directory="ProgramMenuFolder">
+      <Component Id="StartMenuShortcutComponent" Guid="2C7A5E14-9B3D-4F62-8E70-1D5A6C3B9F22">
+        <Shortcut Id="StartMenuShortcut"
+                  Name="桌面日历"
+                  Description="桌面月历挂件"
+                  Target="[INSTALLFOLDER]DesktopCalendarWidget.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="RemoveStartMenuFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DesktopCalendarWidget" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="DesktopShortcuts" Directory="DesktopFolder">
+      <Component Id="DesktopShortcutComponent" Guid="6E4F1B83-5A2C-4D91-B7E6-3F8C2A9D4E57">
+        <Shortcut Id="DesktopShortcut"
+                  Name="桌面日历"
+                  Description="桌面月历挂件"
+                  Target="[INSTALLFOLDER]DesktopCalendarWidget.exe"
+                  WorkingDirectory="INSTALLFOLDER" />
+        <RegistryValue Root="HKCU" Key="Software\DesktopCalendarWidget" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
