@@ -1,0 +1,18 @@
+{
+  // 目的：让自动化/集成终端用"绝对路径"启动 Windows PowerShell，
+  // 绕开"宿主进程 PATH 里没有 WindowsPowerShell 目录 → uv_spawn 'powershell' ENOENT"的问题。
+  // 生效方式：在 VS Code 里执行 "Developer: Reload Window"，或完全退出后重开。
+  "terminal.integrated.defaultProfile.windows": "PowerShell",
+  "terminal.integrated.profiles.windows": {
+    "PowerShell": {
+      "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    }
+  },
+  "terminal.integrated.automationProfile.windows": {
+    "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+  },
+  // 让终端里的 PATH 也一定包含 powershell.exe / python 所在的目录（在原 PATH 后面追加，不会覆盖）
+  "terminal.integrated.env.windows": {
+    "PATH": "${env:PATH};C:\\Windows\\System32\\WindowsPowerShell\\v1.0;C:\\Windows\\System32;C:\\Windows"
+  }
+}
