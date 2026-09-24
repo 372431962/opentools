@@ -8,8 +8,14 @@
     <AssemblyName>DesktopCalendarWidget</AssemblyName>
     <RootNamespace>DesktopCalendarWidget</RootNamespace>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- 版本号唯一来源：发布时 GitHub 标签必须与此一致，界面上的「检查更新」也读这个值。 -->
+    <Version>1.5.8</Version>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets\app.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 离线词典随程序打包；LogicalName 与 TranslateDictionary.ResourceName 必须一致。 -->
+    <EmbeddedResource Include="Translate\Data\zh-en-dict.json" LogicalName="DesktopCalendarWidget.Translate.Data.zh-en-dict.json" />
   </ItemGroup>
 </Project>

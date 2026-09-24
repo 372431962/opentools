@@ -159,6 +159,26 @@ internal static class Program
                 }
             }
         });
+        Run("non-Chinese UI hides lunar and holiday text without editing stored switches", () =>
+        {
+            var previous = Loc.CurrentCulture.Name;
+            try
+            {
+                var s = Settings();
+                Loc.Apply(Loc.ChineseTag);
+                Equal(true, s.ShowLunarEffective, "chinese keeps lunar");
+                Equal(true, s.ShowHolidaysEffective, "chinese keeps holiday text");
+                s.Language = Loc.EnglishTag;
+                Loc.Apply(Loc.EnglishTag);
+                Equal(false, s.ShowLunarEffective, "english hides lunar");
+                Equal(false, s.ShowHolidaysEffective, "english hides holiday text");
+                Equal(true, s.ShowLunar, "stored lunar switch untouched");
+                Equal(true, s.ShowHolidays, "stored holiday switch untouched");
+                Loc.Apply("pt-BR");
+                Equal(true, s.ShowLunarEffective, "unknown tag falls back to chinese");
+            }
+            finally { Loc.Apply(previous); }
+        });
         Run("both flags true always means work", () =>
         {
             var entry = Holiday("2026-09-26"); entry.IsWorkday = true;
@@ -216,7 +236,7 @@ internal static class Program
         {
             var s = Settings(); var before = s.AnchorWeekStart!.Value;
             var actual = Week("2026-09-21", s, Work("2026-09-26")).IsSingleRestWeek;
-            s.ShowHolidays = false; s.Opacity = 0.8;
+            s.ShowHolidays = false; s.Width = 612;
             RestSchedule.ApplyAnchorSelection(s, RestPattern.Alternate, D("2026-09-21"), actual, false);
             Equal(before, s.AnchorWeekStart!.Value, "anchor preserved");
             Equal(true, s.AnchorWeekIsSingleRest, "anchor type preserved");

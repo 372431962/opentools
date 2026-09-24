@@ -31,7 +31,7 @@ public sealed class SettingsService
     }
 
     /// <summary>把旧版配置升级到当前版本：旧版只有「周六单休/周日单休/不标记」，等价于每周单休。</summary>
-    private static void Migrate(WidgetSettings settings)
+    internal static void Migrate(WidgetSettings settings)
     {
         if (settings.SettingsVersion is not null) return;
         if (settings.SingleRestDay != SingleRestDay.None) settings.RestPattern = RestPattern.Weekly;

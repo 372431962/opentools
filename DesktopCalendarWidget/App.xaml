@@ -10,8 +10,17 @@
         <SolidColorBrush x:Key="Weekend" Color="#9B4B3F"/>
         <SolidColorBrush x:Key="Workday" Color="#C87A2B"/>
         <SolidColorBrush x:Key="Border" Color="#E7E0D5"/>
+        <SolidColorBrush x:Key="TodayBackground" Color="#F1E8DD"/>
+        <SolidColorBrush x:Key="WidgetSurface" Color="#DDF7F4EE"/>
+        <SolidColorBrush x:Key="WidgetSurfaceBorder" Color="#C7FFFFFF"/>
+        <SolidColorBrush x:Key="CalendarCellBackground" Color="#42FFFFFF"/>
+        <SolidColorBrush x:Key="WidgetMutedInk" Color="#4F4B45"/>
+        <SolidColorBrush x:Key="WidgetAccent" Color="#913526"/>
+        <SolidColorBrush x:Key="WidgetWeekend" Color="#81382F"/>
+        <SolidColorBrush x:Key="WidgetWorkday" Color="#844313"/>
+        <DropShadowEffect x:Key="TextShadow" Color="#99000000" BlurRadius="2.5" Direction="270" ShadowDepth="1" Opacity="0.78"/>
         <Style TargetType="Button">
-            <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI"/>
             <Setter Property="Foreground" Value="{StaticResource Ink}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>

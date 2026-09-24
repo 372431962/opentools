@@ -11,8 +11,11 @@ public sealed class HolidayService
 
     public async Task<List<HolidayEntry>> DownloadYearAsync(string urlTemplate, int year, CancellationToken token = default)
     {
-        var url = BuildUrl(urlTemplate, year) ?? throw new FormatException("更新地址无法格式化，请确认地址包含 {0} 占位符。");
-        using var response = await Client.GetAsync(url, token);
+        var url = BuildUrl(urlTemplate, year) ?? throw new FormatException(Loc.UrlFormatFailed);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        // 与其他联网模块保持一致：免费接口常按 UA 区分来源，不带可能被拒。
+        HttpSupport.ApplyUserAgent(request);
+        using var response = await Client.SendAsync(request, token);
         response.EnsureSuccessStatusCode();
         await using var stream = await response.Content.ReadAsStreamAsync(token);
         using var document = await JsonDocument.ParseAsync(stream, cancellationToken: token);
@@ -32,7 +35,8 @@ public sealed class HolidayService
         }
     }
 
-    private static List<HolidayEntry> Parse(JsonElement root)
+    /// <summary>解析接口响应。internal 以便回归测试直接喂样例数据，不必联网。</summary>
+    internal static List<HolidayEntry> Parse(JsonElement root)
     {
         var result = new List<HolidayEntry>();
         JsonElement source = root;
@@ -50,10 +54,12 @@ public sealed class HolidayService
             }
         }
 
+        // 同一天多条时按优先级取舍（与 RestSchedule.CreateHolidayMap 一致），
+        // 否则"放假"可能压掉"调休上班"，排班与着色就跟着错了。
         return result
             .Where(x => x.DateValue != DateTime.MinValue)
             .GroupBy(x => x.Date)
-            .Select(x => x.First())
+            .Select(x => x.OrderByDescending(entry => entry.SchedulePriority).First())
             .ToList();
     }
 

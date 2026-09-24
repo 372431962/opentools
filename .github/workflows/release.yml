@@ -39,7 +39,13 @@ jobs:
           if ($env:RELEASE_TAG -notmatch '^v(\d+\.\d+\.\d+)$') {
             throw 'Release tag must have the form v1.3.0'
           }
-          "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+          $version = $Matches[1]
+          $project = [xml](Get-Content DesktopCalendarWidget/DesktopCalendarWidget.csproj)
+          $declared = @($project.Project.PropertyGroup | Where-Object { $_.Version })[0].Version
+          if ($declared -ne $version) {
+            throw "Tag v$version does not match <Version>$declared</Version> in the project file"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
           "tag=$env:RELEASE_TAG" >> $env:GITHUB_OUTPUT
 
       - name: Set up .NET SDK
@@ -47,11 +53,15 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Run schedule regression tests
+      - name: Run regression tests
         shell: pwsh
         run: |
           dotnet run --project tests/DesktopCalendarWidget.ScheduleTests -c Release
           if ($LASTEXITCODE -ne 0) { throw 'Schedule regression tests failed' }
+          dotnet run --project tests/DesktopCalendarWidget.TranslateTests -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Translate and weather regression tests failed' }
+          dotnet run --project tests/DesktopCalendarWidget.WeatherSceneTests -c Release
+          if ($LASTEXITCODE -ne 0) { throw 'Weather scene animation tests failed' }
 
       - name: Install WiX
         shell: pwsh

@@ -54,7 +54,7 @@ public static class RestSchedule
         return result;
     }
 
-    private static int Priority(HolidayEntry entry) => entry.IsWorkday ? 2 : entry.IsHoliday ? 1 : 0;
+    private static int Priority(HolidayEntry entry) => entry.SchedulePriority;
 
     /// <summary>实际日期状态。ShowHolidays 只影响界面文字，不参与排班。</summary>
     public static DaySchedule GetDaySchedule(DateTime date, WidgetSettings settings, IReadOnlyDictionary<DateTime, HolidayEntry> holidays)

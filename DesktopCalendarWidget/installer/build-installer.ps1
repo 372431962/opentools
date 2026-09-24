@@ -4,13 +4,13 @@
 #   dotnet tool install --global wix --version 5.0.2
 #   pwsh -File .\build-installer.ps1 -DotNet dotnet
 #
-# 产物：..\artifacts\DesktopCalendarWidget-1.3.1-win-x64.msi
+# 版本默认取工程文件里的 <Version>，产物：..\artifacts\DesktopCalendarWidget-<版本>-win-x64.msi
 
 param(
     [string]$DotNet = 'dotnet',
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
-    [string]$Version = '1.3.1'
+    [string]$Version = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,6 +19,13 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $project = Join-Path $projectRoot 'DesktopCalendarWidget.csproj'
 $artifacts = Join-Path $projectRoot 'artifacts'
 $publish = Join-Path $artifacts 'publish'
+
+if (-not $Version) {
+    $projectXml = [xml](Get-Content -LiteralPath $project)
+    $Version = @($projectXml.Project.PropertyGroup | Where-Object { $_.Version })[0].Version
+    if (-not $Version) { throw "无法从 $project 读取 <Version>" }
+}
+
 $msi = Join-Path $artifacts ("DesktopCalendarWidget-$Version-$Runtime.msi")
 
 if (Test-Path -LiteralPath $publish) { Remove-Item -LiteralPath $publish -Recurse -Force }

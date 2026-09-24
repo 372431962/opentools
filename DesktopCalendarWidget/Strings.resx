@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="1" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- 默认（中性）资源 = 简体中文。en-US 见 Strings.en-US.resx。 -->
+  <data name="AppTitle" xml:space="preserve"><value>桌面日历</value></data>
+  <data name="TodayButton" xml:space="preserve"><value>今天</value></data>
+  <data name="MenuButtonTip" xml:space="preserve"><value>打开菜单</value></data>
+  <data name="PreviousMonthTip" xml:space="preserve"><value>上个月</value></data>
+  <data name="NextMonthTip" xml:space="preserve"><value>下个月</value></data>
+  <data name="LegendNoRest" xml:space="preserve"><value>红色：周末与节假日   橙色：调休上班   双击日期回到本月</value></data>
+  <data name="LegendRest" xml:space="preserve"><value>红色：休息日与节假日   休：休息日   橙色：调休上班   双击日期回到本月</value></data>
+  <data name="TodayPrefix" xml:space="preserve"><value>今天</value></data>
+  <data name="DateFormatLong" xml:space="preserve"><value>yyyy年M月d日</value></data>
+  <data name="MonthTitleFormat" xml:space="preserve"><value>yyyy年 M月</value></data>
+  <data name="WeekDayNames" xml:space="preserve"><value>日,一,二,三,四,五,六</value></data>
+  <data name="MarkerRest" xml:space="preserve"><value>休</value></data>
+  <data name="MarkerWorkday" xml:space="preserve"><value>班</value></data>
+  <data name="SuffixWorkdayAdjust" xml:space="preserve"><value>（调休上班）</value></data>
+  <data name="SuffixHolidayOff" xml:space="preserve"><value>（放假）</value></data>
+  <data name="LunarYearLabel" xml:space="preserve"><value>农历{0}年</value></data>
+  <data name="WeekNoRest" xml:space="preserve"><value>本周周末无休</value></data>
+  <data name="WeekSingleRest" xml:space="preserve"><value>本周单休</value></data>
+  <data name="WeekDoubleRest" xml:space="preserve"><value>本周双休</value></data>
+  <data name="HotkeyConflictText" xml:space="preserve"><value>快捷键 Ctrl+Alt+C 已被其他程序占用。为避免挂件无法操作，本次未启用鼠标穿透。</value></data>
+  <data name="MenuSettings" xml:space="preserve"><value>设置</value></data>
+  <data name="MenuShowWidget" xml:space="preserve"><value>显示挂件</value></data>
+  <data name="MenuHideWidget" xml:space="preserve"><value>隐藏挂件</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>退出</value></data>
+  <data name="MenuLock" xml:space="preserve"><value>锁定位置</value></data>
+  <data name="MenuUnlock" xml:space="preserve"><value>解锁位置</value></data>
+  <data name="MenuClickThrough" xml:space="preserve"><value>鼠标穿透（Ctrl+Alt+C）</value></data>
+  <data name="MenuTopmost" xml:space="preserve"><value>窗口置顶</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>日历设置</value></data>
+  <data name="SectionDisplay" xml:space="preserve"><value>显示</value></data>
+  <data name="ShowLunarCheck" xml:space="preserve"><value>显示农历</value></data>
+  <data name="ShowHolidayCheck" xml:space="preserve"><value>显示节假日名称和调休“班”字</value></data>
+  <data name="DisplayHideNote" xml:space="preserve"><value>关闭文字仍按节假日、调休计算休息与上班，并调整后续大小周。</value></data>
+  <data name="ChineseOnlyNote" xml:space="preserve"><value>农历与中国节假日仅在中文界面显示。</value></data>
+  <data name="SectionLanguage" xml:space="preserve"><value>语言</value></data>
+  <data name="LanguageNote" xml:space="preserve"><value>切换语言后需要重启挂件生效。</value></data>
+  <!-- 语言名按原文显示（English 界面也把“简体中文”写成中文），因此两份资源填同一个值。 -->
+  <data name="LanguageChinese" xml:space="preserve"><value>简体中文</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="SectionRestDays" xml:space="preserve"><value>休息日</value></data>
+  <data name="RestPatternLabel" xml:space="preserve"><value>休息日模式</value></data>
+  <data name="PatternNone" xml:space="preserve"><value>不标记（周末按周六周日显示）</value></data>
+  <data name="PatternWeekly" xml:space="preserve"><value>每周单休</value></data>
+  <data name="PatternAlternate" xml:space="preserve"><value>隔周单休（大小周）</value></data>
+  <data name="SingleRestLabel" xml:space="preserve"><value>单休日</value></data>
+  <data name="DaySaturday" xml:space="preserve"><value>周六</value></data>
+  <data name="DaySunday" xml:space="preserve"><value>周日</value></data>
+  <data name="AnchorSingleThisWeek" xml:space="preserve"><value>本周是单休周</value></data>
+  <data name="CurrentWeekFormat" xml:space="preserve"><value>本周：{0}（周一） ~ {1}（周日）
+按当前数据，周末实际休息 {2} 天（调休优先）。</value></data>
+  <data name="AlternateExplainer" xml:space="preserve"><value>单休周休所选单休日；双休周休周六、周日。周末调休后休1天，下周双休；休2天，下周单休，并继续交替。周末无休则按原计划翻转，周中放假不改变交替。更改本周选择会以本周为新基准，法定调休仍优先；仅改其他选项会保留原基准。</value></data>
+  <data name="SectionWindow" xml:space="preserve"><value>窗口</value></data>
+  <data name="LockCheck" xml:space="preserve"><value>锁定位置</value></data>
+  <data name="ClickThroughCheck" xml:space="preserve"><value>鼠标穿透（开启后无法拖动和右键操作）</value></data>
+  <data name="StartWithWindowsCheck" xml:space="preserve"><value>随 Windows 启动</value></data>
+  <data name="HotkeyNote" xml:space="preserve"><value>快捷键：Ctrl+Alt+C 切换鼠标穿透，Ctrl+Alt+L 切换位置锁定</value></data>
+  <data name="SectionOnline" xml:space="preserve"><value>联网更新</value></data>
+  <data name="OnlineExplainer" xml:space="preserve"><value>手动从公开接口获取当前年和下一年的节假日，成功后保存到本地；失败时继续使用本地数据。</value></data>
+  <data name="UpdateUrlLabel" xml:space="preserve"><value>更新地址（{0} 为年份）</value></data>
+  <data name="UpdateButton" xml:space="preserve"><value>↻ 立即检查节假日更新</value></data>
+  <data name="UrlNeedsPlaceholder" xml:space="preserve"><value>更新地址需要包含 {0} 作为年份占位符。</value></data>
+  <data name="Updating" xml:space="preserve"><value>正在获取当前年和下一年数据…</value></data>
+  <data name="UpdateDone" xml:space="preserve"><value>更新完成：获取 {0} 条，已保存到本地。</value></data>
+  <data name="UpdateFailed" xml:space="preserve"><value>更新失败：{0}
+本地已有数据仍可继续使用。</value></data>
+  <data name="SectionLocalData" xml:space="preserve"><value>本地数据编辑</value></data>
+  <data name="LocalDataHint" xml:space="preserve"><value>每行一个 JSON 对象，例如：{"Date":"2026-10-01","Name":"国庆节","IsWorkday":false}</value></data>
+  <data name="SaveLocalButton" xml:space="preserve"><value>保存本地节假日数据</value></data>
+  <data name="OpenFolderButton" xml:space="preserve"><value>打开数据目录</value></data>
+  <data name="LocalSavedCount" xml:space="preserve"><value>已保存 {0} 条本地数据。</value></data>
+  <data name="LocalFormatError" xml:space="preserve"><value>本地数据格式错误：{0}</value></data>
+  <data name="OpenFolderFailed" xml:space="preserve"><value>无法打开目录：{0}</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>取消</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>保存</value></data>
+  <data name="RestartCaption" xml:space="preserve"><value>需要重启</value></data>
+  <data name="RestartQuestion" xml:space="preserve"><value>语言已更改，是否立即重启挂件？</value></data>
+  <data name="UrlFormatFailed" xml:space="preserve"><value>更新地址无法格式化，请确认地址包含 {0} 占位符。</value></data>
+  <data name="NoHolidayData" xml:space="preserve"><value>接口没有返回可识别的日期数据。</value></data>
+  <!-- 翻译 -->
+  <data name="MenuTranslate" xml:space="preserve"><value>翻译</value></data>
+  <data name="TranslateTitle" xml:space="preserve"><value>中英翻译</value></data>
+  <data name="TranslateInputHint" xml:space="preserve"><value>在此输入或粘贴中文 / English…</value></data>
+  <data name="TranslateResultHint" xml:space="preserve"><value>译文显示在这里</value></data>
+  <data name="TranslateRun" xml:space="preserve"><value>翻译</value></data>
+  <data name="TranslateCopy" xml:space="preserve"><value>复制</value></data>
+  <data name="TranslateCopied" xml:space="preserve"><value>已复制</value></data>
+  <data name="TranslateClear" xml:space="preserve"><value>清空</value></data>
+  <data name="TranslateSwap" xml:space="preserve"><value>⇄</value></data>
+  <data name="TranslateDirectionFormat" xml:space="preserve"><value>{0} → {1}</value></data>
+  <data name="TranslateDetectFormat" xml:space="preserve"><value>检测到：{0}</value></data>
+  <data name="TranslateLangChinese" xml:space="preserve"><value>中文</value></data>
+  <data name="TranslateLangEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="TranslateBusy" xml:space="preserve"><value>正在翻译…</value></data>
+  <data name="TranslateCached" xml:space="preserve"><value>缓存</value></data>
+  <data name="TranslateOfflineNote" xml:space="preserve"><value>离线词典逐词直译，仅供应急</value></data>
+  <data name="TranslateMixedText" xml:space="preserve"><value>中英混合，按多数派方向翻译</value></data>
+  <data name="TranslateTooLong" xml:space="preserve"><value>内容超过 {0} 字，超出部分已丢弃</value></data>
+  <data name="TranslateEmpty" xml:space="preserve"><value>请输入要翻译的内容</value></data>
+  <data name="TranslateUnsupported" xml:space="preserve"><value>仅支持中英互译</value></data>
+  <data name="TranslateFailed" xml:space="preserve"><value>翻译失败，请检查网络后重试</value></data>
+  <data name="TranslateStatusFormat" xml:space="preserve"><value>{0} · {1:0} ms</value></data>
+  <data name="TranslateTopmostCheck" xml:space="preserve"><value>窗口置顶（显示在所有窗口之上）</value></data>
+  <data name="TranslateClose" xml:space="preserve"><value>关闭</value></data>
+  <data name="TranslatePrivacyNote" xml:space="preserve"><value>译文由第三方接口生成，输入内容会发送到该服务。</value></data>
+  <data name="TranslateCharCountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="SectionTranslate" xml:space="preserve"><value>翻译</value></data>
+  <data name="TranslateProviderLabel" xml:space="preserve"><value>翻译接口</value></data>
+  <data name="TranslateProviderAuto" xml:space="preserve"><value>自动（依次尝试，失败自动降级）</value></data>
+  <data name="TranslateProviderMyMemory" xml:space="preserve"><value>MyMemory（国内可达，每日限量）</value></data>
+  <data name="TranslateProviderGoogle" xml:space="preserve"><value>Google（质量较好，部分地区不可达）</value></data>
+  <data name="TranslateProviderOffline" xml:space="preserve"><value>离线词典（不联网，逐词直译）</value></data>
+  <data name="TranslateOfflineFallbackCheck" xml:space="preserve"><value>在线接口失败时用内置词典直译</value></data>
+  <data name="TranslateExplainer" xml:space="preserve"><value>免费接口没有服务承诺，随时可能失效或限流；失败会自动换下一个。</value></data>
+  <!-- 天气 -->
+  <data name="SectionWeather" xml:space="preserve"><value>天气</value></data>
+  <data name="WeatherCheck" xml:space="preserve"><value>在日期上显示天气和温度</value></data>
+  <data name="WeatherCityLabel" xml:space="preserve"><value>城市</value></data>
+  <data name="WeatherRefreshLabel" xml:space="preserve"><value>刷新间隔（分钟）</value></data>
+  <data name="WeatherUpdateButton" xml:space="preserve"><value>↻ 立即更新天气</value></data>
+  <data name="WeatherUpdating" xml:space="preserve"><value>正在获取天气…</value></data>
+  <data name="WeatherUpdatedFormat" xml:space="preserve"><value>天气已更新（{0}，{1} 天）</value></data>
+  <data name="WeatherFailed" xml:space="preserve"><value>天气更新失败：{0}</value></data>
+  <data name="WeatherRangeNote" xml:space="preserve"><value>免费接口只提供未来 16 天预报，超出范围的日期不显示天气。</value></data>
+  <data name="WeatherPrivacyNote" xml:space="preserve"><value>天气按城市查询，城市名会发送给第三方接口。</value></data>
+  <data name="WeatherTooltipFormat" xml:space="preserve"><value>{0} {1}°C ~ {2}°C</value></data>
+  <data name="WeatherPrecipFormat" xml:space="preserve"><value>降水 {0}%</value></data>
+  <data name="WeatherSourceFormat" xml:space="preserve"><value>天气来源：{0}</value></data>
+  <data name="WeatherClear" xml:space="preserve"><value>晴</value></data>
+  <data name="WeatherPartlyCloudy" xml:space="preserve"><value>多云</value></data>
+  <data name="WeatherOvercast" xml:space="preserve"><value>阴</value></data>
+  <data name="WeatherFog" xml:space="preserve"><value>雾</value></data>
+  <data name="WeatherDrizzle" xml:space="preserve"><value>毛毛雨</value></data>
+  <data name="WeatherRain" xml:space="preserve"><value>小雨</value></data>
+  <data name="WeatherHeavyRain" xml:space="preserve"><value>大雨</value></data>
+  <data name="WeatherSnow" xml:space="preserve"><value>雪</value></data>
+  <data name="WeatherThunderstorm" xml:space="preserve"><value>雷阵雨</value></data>
+  <data name="WeatherUnknown" xml:space="preserve"><value>未知</value></data>
+
+  <!-- 自动更新 -->
+  <data name="MenuCheckUpdate" xml:space="preserve"><value>检查更新…</value></data>
+  <data name="SectionUpdate" xml:space="preserve"><value>更新</value></data>
+  <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>当前版本 v{0}</value></data>
+  <data name="AutoCheckUpdatesCheck" xml:space="preserve"><value>自动检查新版本（启动后查一次，之后每 12 小时一次）</value></data>
+  <data name="CheckUpdateButton" xml:space="preserve"><value>&#8635; 立即检查更新</value></data>
+  <data name="UpdatePrivacyNote" xml:space="preserve"><value>检查更新只访问 GitHub 的公开发布接口，不发送任何个人数据或日历内容。</value></data>
+  <data name="UpdateCaption" xml:space="preserve"><value>版本更新</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>正在检查更新…</value></data>
+  <data name="UpdateUpToDateFormat" xml:space="preserve"><value>已是最新版本 v{0}</value></data>
+  <data name="UpdateCheckFailedFormat" xml:space="preserve"><value>检查更新失败：{0}</value></data>
+  <data name="UpdateInvalidRelease" xml:space="preserve"><value>无法识别 GitHub 发布信息，请稍后重试</value></data>
+  <data name="UpdateAvailableFormat" xml:space="preserve"><value>发现新版本 v{0}（当前 v{1}，安装包{2}）。&#10;&#10;是：下载安装包&#10;否：稍后再说&#10;取消：不再提示这个版本</value></data>
+  <data name="UpdateNoInstallerFormat" xml:space="preserve"><value>新版本 v{0} 没有提供 Windows 安装包，是否打开发布页手动下载？</value></data>
+  <data name="UpdateSizeFormat" xml:space="preserve"><value>约 {0} MB</value></data>
+  <data name="UpdateSizeUnknown" xml:space="preserve"><value>大小未知</value></data>
+  <data name="UpdateDownloadingCaption" xml:space="preserve"><value>正在下载新版本</value></data>
+  <data name="UpdateDownloadingFormat" xml:space="preserve"><value>正在下载 v{0} 安装包（{1}）…</value></data>
+  <data name="UpdateDownloadProgressFormat" xml:space="preserve"><value>{0:0.0} / {1:0.0} MB</value></data>
+  <data name="UpdateCancelButton" xml:space="preserve"><value>取消</value></data>
+  <data name="UpdateDownloadFailedFormat" xml:space="preserve"><value>下载失败：{0}</value></data>
+  <data name="UpdateReadyQuestionFormat" xml:space="preserve"><value>安装包已下载到：&#10;{0}&#10;&#10;是：退出挂件并启动安装向导&#10;否：保留安装包，稍后手动安装</value></data>
+  <data name="UpdatePortableNote" xml:space="preserve"><value>当前程序不是从默认安装目录运行的，安装完成后请从开始菜单或桌面快捷方式启动新版本。</value></data>
+  <data name="UpdateInstallFailedFormat" xml:space="preserve"><value>无法启动安装程序：{0}</value></data>
+  <data name="UpdateOpenFailedFormat" xml:space="preserve"><value>无法打开链接：{0}</value></data>
+  <data name="StartupFailedFormat" xml:space="preserve"><value>设置开机启动失败：{0}</value></data>
+  <data name="WeatherStaleNote" xml:space="preserve"><value>天气为上次数据</value></data>
+  <data name="HotkeysUnavailableFormat" xml:space="preserve"><value>以下快捷键被其他程序占用，已失效：{0}</value></data>
+  <data name="UpdateVerifyFailed" xml:space="preserve"><value>安装包校验未通过，已放弃安装</value></data>
+</root>

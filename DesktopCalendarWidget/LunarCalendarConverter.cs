@@ -47,17 +47,21 @@ public static class LunarCalendarConverter
         }
     }
 
-    /// <summary>农历年份的干支文本，例如“农历乙巳年”。超出支持范围时返回空字符串。</summary>
+    /// <summary>农历年份的干支文本，例如“乙巳”。纯函数，便于回归测试。</summary>
+    public static string StemBranchOf(int lunarYear)
+    {
+        var offset = lunarYear - 4;
+        if (offset < 0) return "";
+        return $"{HeavenlyStems[offset % 10]}{EarthlyBranches[offset % 12]}";
+    }
+
+    /// <summary>农历年份的完整标签，例如“农历乙巳年”。超出支持范围时返回空字符串。</summary>
     public static string GetYearLabel(DateTime date)
     {
         try
         {
-            var lunarYear = Calendar.GetYear(date);
-            var offset = lunarYear - 4;
-            if (offset < 0) return "";
-            var stem = HeavenlyStems[offset % 10];
-            var branch = EarthlyBranches[offset % 12];
-            return $"农历{stem}{branch}年";
+            var stemBranch = StemBranchOf(Calendar.GetYear(date));
+            return stemBranch.Length == 0 ? "" : Loc.Fmt(Loc.LunarYearLabel, stemBranch);
         }
         catch (ArgumentOutOfRangeException)
         {

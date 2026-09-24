@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="1" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <!-- en-US. Keys must stay in sync with Strings.resx and Loc.cs. -->
+  <data name="AppTitle" xml:space="preserve"><value>Desktop Calendar</value></data>
+  <data name="TodayButton" xml:space="preserve"><value>Today</value></data>
+  <data name="MenuButtonTip" xml:space="preserve"><value>Open menu</value></data>
+  <data name="PreviousMonthTip" xml:space="preserve"><value>Previous month</value></data>
+  <data name="NextMonthTip" xml:space="preserve"><value>Next month</value></data>
+  <data name="LegendNoRest" xml:space="preserve"><value>Red: weekends and holidays   Orange: make-up workday   Double-click a date to jump to this month</value></data>
+  <data name="LegendRest" xml:space="preserve"><value>Red: rest days and holidays   R: rest day   Orange: make-up workday   Double-click a date to jump to this month</value></data>
+  <data name="TodayPrefix" xml:space="preserve"><value>Today</value></data>
+  <data name="DateFormatLong" xml:space="preserve"><value>MMMM d, yyyy</value></data>
+  <data name="MonthTitleFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
+  <data name="WeekDayNames" xml:space="preserve"><value>Sun,Mon,Tue,Wed,Thu,Fri,Sat</value></data>
+  <data name="MarkerRest" xml:space="preserve"><value>R</value></data>
+  <data name="MarkerWorkday" xml:space="preserve"><value>W</value></data>
+  <data name="SuffixWorkdayAdjust" xml:space="preserve"><value> (make-up workday)</value></data>
+  <data name="SuffixHolidayOff" xml:space="preserve"><value> (holiday)</value></data>
+  <data name="LunarYearLabel" xml:space="preserve"><value>Lunar year {0}</value></data>
+  <data name="WeekNoRest" xml:space="preserve"><value>no weekend rest this week</value></data>
+  <data name="WeekSingleRest" xml:space="preserve"><value>one rest day this weekend</value></data>
+  <data name="WeekDoubleRest" xml:space="preserve"><value>both weekend days rest</value></data>
+  <data name="HotkeyConflictText" xml:space="preserve"><value>Ctrl+Alt+C is already taken by another program. Click-through was not enabled this run so the widget stays usable.</value></data>
+  <data name="MenuSettings" xml:space="preserve"><value>Settings</value></data>
+  <data name="MenuShowWidget" xml:space="preserve"><value>Show widget</value></data>
+  <data name="MenuHideWidget" xml:space="preserve"><value>Hide widget</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>Exit</value></data>
+  <data name="MenuLock" xml:space="preserve"><value>Lock position</value></data>
+  <data name="MenuUnlock" xml:space="preserve"><value>Unlock position</value></data>
+  <data name="MenuClickThrough" xml:space="preserve"><value>Click-through (Ctrl+Alt+C)</value></data>
+  <data name="MenuTopmost" xml:space="preserve"><value>Keep on top</value></data>
+  <data name="SettingsTitle" xml:space="preserve"><value>Calendar Settings</value></data>
+  <data name="SectionDisplay" xml:space="preserve"><value>Display</value></data>
+  <data name="ShowLunarCheck" xml:space="preserve"><value>Show lunar dates</value></data>
+  <data name="ShowHolidayCheck" xml:space="preserve"><value>Show holiday names and make-up workday marks</value></data>
+  <data name="DisplayHideNote" xml:space="preserve"><value>Turning the text off still uses holidays and make-up days to work out rest and work days, and to shift the alternating weeks.</value></data>
+  <data name="ChineseOnlyNote" xml:space="preserve"><value>Lunar dates and Chinese holidays are only shown in the Chinese interface.</value></data>
+  <data name="SectionLanguage" xml:space="preserve"><value>Language</value></data>
+  <data name="LanguageNote" xml:space="preserve"><value>Restart the widget for the new language to take effect.</value></data>
+  <!-- Language names stay in their own script in both resources. -->
+  <data name="LanguageChinese" xml:space="preserve"><value>简体中文</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="SectionRestDays" xml:space="preserve"><value>Rest days</value></data>
+  <data name="RestPatternLabel" xml:space="preserve"><value>Rest day pattern</value></data>
+  <data name="PatternNone" xml:space="preserve"><value>No marking (Sat and Sun shown as weekends)</value></data>
+  <data name="PatternWeekly" xml:space="preserve"><value>One rest day every week</value></data>
+  <data name="PatternAlternate" xml:space="preserve"><value>Alternating weeks (big / small)</value></data>
+  <data name="SingleRestLabel" xml:space="preserve"><value>Single rest day</value></data>
+  <data name="DaySaturday" xml:space="preserve"><value>Saturday</value></data>
+  <data name="DaySunday" xml:space="preserve"><value>Sunday</value></data>
+  <data name="AnchorSingleThisWeek" xml:space="preserve"><value>This week is a single-rest week</value></data>
+  <data name="CurrentWeekFormat" xml:space="preserve"><value>This week: {0} (Mon) to {1} (Sun)
+With the current data the weekend actually has {2} rest day(s) (make-up days take priority).</value></data>
+  <data name="AlternateExplainer" xml:space="preserve"><value>A single-rest week rests the chosen day; a full week rests Saturday and Sunday. When a weekend make-up day cuts it to one rest day, the next week is a full week; with two, the next week is single-rest, and the alternation continues. A weekend with no rest flips as planned, and a mid-week holiday does not change the alternation. Changing this week's choice makes this week the new reference, with statutory make-up days still taking priority; changing anything else keeps the old reference.</value></data>
+  <data name="SectionWindow" xml:space="preserve"><value>Window</value></data>
+  <data name="LockCheck" xml:space="preserve"><value>Lock position</value></data>
+  <data name="ClickThroughCheck" xml:space="preserve"><value>Click-through (stops dragging and right-click)</value></data>
+  <data name="StartWithWindowsCheck" xml:space="preserve"><value>Start with Windows</value></data>
+  <data name="HotkeyNote" xml:space="preserve"><value>Shortcuts: Ctrl+Alt+C toggles click-through, Ctrl+Alt+L toggles the position lock</value></data>
+  <data name="SectionOnline" xml:space="preserve"><value>Online update</value></data>
+  <data name="OnlineExplainer" xml:space="preserve"><value>Fetches the holidays for this year and next from a public endpoint and saves them locally; on failure the local data stays in use.</value></data>
+  <data name="UpdateUrlLabel" xml:space="preserve"><value>Update URL ({0} is the year)</value></data>
+  <data name="UpdateButton" xml:space="preserve"><value>↻ Check for holiday updates now</value></data>
+  <data name="UrlNeedsPlaceholder" xml:space="preserve"><value>The update URL must contain {0} as the year placeholder.</value></data>
+  <data name="Updating" xml:space="preserve"><value>Fetching this year and next…</value></data>
+  <data name="UpdateDone" xml:space="preserve"><value>Done: fetched {0} entries and saved them locally.</value></data>
+  <data name="UpdateFailed" xml:space="preserve"><value>Update failed: {0}
+The existing local data is still in use.</value></data>
+  <data name="SectionLocalData" xml:space="preserve"><value>Local data editor</value></data>
+  <data name="LocalDataHint" xml:space="preserve"><value>One JSON object per line, for example: {"Date":"2026-10-01","Name":"National Day","IsWorkday":false}</value></data>
+  <data name="SaveLocalButton" xml:space="preserve"><value>Save local holiday data</value></data>
+  <data name="OpenFolderButton" xml:space="preserve"><value>Open data folder</value></data>
+  <data name="LocalSavedCount" xml:space="preserve"><value>Saved {0} local entries.</value></data>
+  <data name="LocalFormatError" xml:space="preserve"><value>Invalid local data: {0}</value></data>
+  <data name="OpenFolderFailed" xml:space="preserve"><value>Could not open the folder: {0}</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>Cancel</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>Save</value></data>
+  <data name="RestartCaption" xml:space="preserve"><value>Restart required</value></data>
+  <data name="RestartQuestion" xml:space="preserve"><value>The language changed. Restart the widget now?</value></data>
+  <data name="UrlFormatFailed" xml:space="preserve"><value>The update URL could not be formatted; make sure it contains the {0} placeholder.</value></data>
+  <data name="NoHolidayData" xml:space="preserve"><value>The endpoint returned no recognisable dates.</value></data>
+  <!-- Translate -->
+  <data name="MenuTranslate" xml:space="preserve"><value>Translate</value></data>
+  <data name="TranslateTitle" xml:space="preserve"><value>Chinese / English</value></data>
+  <data name="TranslateInputHint" xml:space="preserve"><value>Type or paste Chinese / English here...</value></data>
+  <data name="TranslateResultHint" xml:space="preserve"><value>Translation appears here</value></data>
+  <data name="TranslateRun" xml:space="preserve"><value>Translate</value></data>
+  <data name="TranslateCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="TranslateCopied" xml:space="preserve"><value>Copied</value></data>
+  <data name="TranslateClear" xml:space="preserve"><value>Clear</value></data>
+  <data name="TranslateSwap" xml:space="preserve"><value>&#8644;</value></data>
+  <data name="TranslateDirectionFormat" xml:space="preserve"><value>{0} &#8594; {1}</value></data>
+  <data name="TranslateDetectFormat" xml:space="preserve"><value>Detected: {0}</value></data>
+  <data name="TranslateLangChinese" xml:space="preserve"><value>Chinese</value></data>
+  <data name="TranslateLangEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="TranslateBusy" xml:space="preserve"><value>Translating...</value></data>
+  <data name="TranslateCached" xml:space="preserve"><value>cache</value></data>
+  <data name="TranslateOfflineNote" xml:space="preserve"><value>Offline dictionary, word by word, for emergencies only</value></data>
+  <data name="TranslateMixedText" xml:space="preserve"><value>Mixed Chinese and English, translated toward the majority</value></data>
+  <data name="TranslateTooLong" xml:space="preserve"><value>Over {0} characters, the rest was dropped</value></data>
+  <data name="TranslateEmpty" xml:space="preserve"><value>Enter something to translate</value></data>
+  <data name="TranslateUnsupported" xml:space="preserve"><value>Chinese / English only</value></data>
+  <data name="TranslateFailed" xml:space="preserve"><value>Translation failed, check your network and try again</value></data>
+  <data name="TranslateStatusFormat" xml:space="preserve"><value>{0} &#183; {1:0} ms</value></data>
+  <data name="TranslateTopmostCheck" xml:space="preserve"><value>Always on top (above all windows)</value></data>
+  <data name="TranslateClose" xml:space="preserve"><value>Close</value></data>
+  <data name="TranslatePrivacyNote" xml:space="preserve"><value>Translations come from a third-party service; your text is sent to it.</value></data>
+  <data name="TranslateCharCountFormat" xml:space="preserve"><value>{0} / {1}</value></data>
+  <data name="SectionTranslate" xml:space="preserve"><value>Translate</value></data>
+  <data name="TranslateProviderLabel" xml:space="preserve"><value>Translation service</value></data>
+  <data name="TranslateProviderAuto" xml:space="preserve"><value>Auto (try in order, fall back automatically)</value></data>
+  <data name="TranslateProviderMyMemory" xml:space="preserve"><value>MyMemory (reachable in China, daily quota)</value></data>
+  <data name="TranslateProviderGoogle" xml:space="preserve"><value>Google (better quality, blocked in some regions)</value></data>
+  <data name="TranslateProviderOffline" xml:space="preserve"><value>Offline dictionary (no network, word by word)</value></data>
+  <data name="TranslateOfflineFallbackCheck" xml:space="preserve"><value>Use the built-in dictionary when online services fail</value></data>
+  <data name="TranslateExplainer" xml:space="preserve"><value>Free services carry no guarantee and may break or rate-limit at any time; a failure falls back to the next one.</value></data>
+  <!-- Weather -->
+  <data name="SectionWeather" xml:space="preserve"><value>Weather</value></data>
+  <data name="WeatherCheck" xml:space="preserve"><value>Show weather and temperature on each date</value></data>
+  <data name="WeatherCityLabel" xml:space="preserve"><value>City</value></data>
+  <data name="WeatherRefreshLabel" xml:space="preserve"><value>Refresh every (minutes)</value></data>
+  <data name="WeatherUpdateButton" xml:space="preserve"><value>&#8635; Update weather now</value></data>
+  <data name="WeatherUpdating" xml:space="preserve"><value>Fetching weather...</value></data>
+  <data name="WeatherUpdatedFormat" xml:space="preserve"><value>Weather updated ({0}, {1} days)</value></data>
+  <data name="WeatherFailed" xml:space="preserve"><value>Weather update failed: {0}</value></data>
+  <data name="WeatherRangeNote" xml:space="preserve"><value>The free API forecasts 16 days ahead only; dates outside that range show no weather.</value></data>
+  <data name="WeatherPrivacyNote" xml:space="preserve"><value>Weather is looked up by city; the city name is sent to a third-party service.</value></data>
+  <data name="WeatherTooltipFormat" xml:space="preserve"><value>{0} {1}&#176;C ~ {2}&#176;C</value></data>
+  <data name="WeatherPrecipFormat" xml:space="preserve"><value>precipitation {0}%</value></data>
+  <data name="WeatherSourceFormat" xml:space="preserve"><value>Weather source: {0}</value></data>
+  <data name="WeatherClear" xml:space="preserve"><value>Clear</value></data>
+  <data name="WeatherPartlyCloudy" xml:space="preserve"><value>Partly cloudy</value></data>
+  <data name="WeatherOvercast" xml:space="preserve"><value>Overcast</value></data>
+  <data name="WeatherFog" xml:space="preserve"><value>Fog</value></data>
+  <data name="WeatherDrizzle" xml:space="preserve"><value>Drizzle</value></data>
+  <data name="WeatherRain" xml:space="preserve"><value>Rain</value></data>
+  <data name="WeatherHeavyRain" xml:space="preserve"><value>Heavy rain</value></data>
+  <data name="WeatherSnow" xml:space="preserve"><value>Snow</value></data>
+  <data name="WeatherThunderstorm" xml:space="preserve"><value>Thunderstorm</value></data>
+  <data name="WeatherUnknown" xml:space="preserve"><value>Unknown</value></data>
+
+  <!-- Auto update -->
+  <data name="MenuCheckUpdate" xml:space="preserve"><value>Check for updates...</value></data>
+  <data name="SectionUpdate" xml:space="preserve"><value>Updates</value></data>
+  <data name="UpdateCurrentVersionFormat" xml:space="preserve"><value>Current version v{0}</value></data>
+  <data name="AutoCheckUpdatesCheck" xml:space="preserve"><value>Check for new versions automatically (once at startup, then every 12 hours)</value></data>
+  <data name="CheckUpdateButton" xml:space="preserve"><value>&#8635; Check now</value></data>
+  <data name="UpdatePrivacyNote" xml:space="preserve"><value>Update checks only call the public GitHub Releases API; no personal data or calendar content is sent.</value></data>
+  <data name="UpdateCaption" xml:space="preserve"><value>Software update</value></data>
+  <data name="UpdateChecking" xml:space="preserve"><value>Checking for updates...</value></data>
+  <data name="UpdateUpToDateFormat" xml:space="preserve"><value>You are up to date (v{0})</value></data>
+  <data name="UpdateCheckFailedFormat" xml:space="preserve"><value>Update check failed: {0}</value></data>
+  <data name="UpdateInvalidRelease" xml:space="preserve"><value>Unable to parse the GitHub release. Please try again later.</value></data>
+  <data name="UpdateAvailableFormat" xml:space="preserve"><value>Version v{0} is available (you are on v{1}, installer {2}).&#10;&#10;Yes: download the installer&#10;No: ask me later&#10;Cancel: do not ask about this version</value></data>
+  <data name="UpdateNoInstallerFormat" xml:space="preserve"><value>Release v{0} offers no Windows installer. Open the release page to download it manually?</value></data>
+  <data name="UpdateSizeFormat" xml:space="preserve"><value>about {0} MB</value></data>
+  <data name="UpdateSizeUnknown" xml:space="preserve"><value>size unknown</value></data>
+  <data name="UpdateDownloadingCaption" xml:space="preserve"><value>Downloading update</value></data>
+  <data name="UpdateDownloadingFormat" xml:space="preserve"><value>Downloading the v{0} installer ({1})...</value></data>
+  <data name="UpdateDownloadProgressFormat" xml:space="preserve"><value>{0:0.0} / {1:0.0} MB</value></data>
+  <data name="UpdateCancelButton" xml:space="preserve"><value>Cancel</value></data>
+  <data name="UpdateDownloadFailedFormat" xml:space="preserve"><value>Download failed: {0}</value></data>
+  <data name="UpdateReadyQuestionFormat" xml:space="preserve"><value>The installer was saved to:&#10;{0}&#10;&#10;Yes: quit the widget and run the installer&#10;No: keep the file and install later</value></data>
+  <data name="UpdatePortableNote" xml:space="preserve"><value>This copy is not running from the default install folder. After installing, start the new version from the Start Menu or the desktop shortcut.</value></data>
+  <data name="UpdateInstallFailedFormat" xml:space="preserve"><value>Could not start the installer: {0}</value></data>
+  <data name="UpdateOpenFailedFormat" xml:space="preserve"><value>Could not open the link: {0}</value></data>
+  <data name="StartupFailedFormat" xml:space="preserve"><value>Could not change the startup setting: {0}</value></data>
+  <data name="WeatherStaleNote" xml:space="preserve"><value>Weather is from the last successful update</value></data>
+  <data name="HotkeysUnavailableFormat" xml:space="preserve"><value>These shortcuts are taken by another program and will not work: {0}</value></data>
+  <data name="UpdateVerifyFailed" xml:space="preserve"><value>The installer failed verification and was discarded</value></data>
+</root>

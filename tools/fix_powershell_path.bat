@@ -12,11 +12,11 @@ cd /d "%~dp0"
 set "PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
 if not exist "%PS%" set "PS=powershell.exe"
 
-echo [DesktopFish] 开始修复...
+echo [fix_powershell_path] 开始修复...
 echo.
 "%PS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0fix_powershell_path.ps1" %*
 
 echo.
-echo [DesktopFish] 完成后请：新开一个 cmd 执行  where powershell  验证；
+echo [fix_powershell_path] 完成后请：新开一个 cmd 执行  where powershell  验证；
 echo                然后完全退出并重新打开编辑器/agent 宿主。
 pause

@@ -1,0 +1,83 @@
+<Window x:Class="DesktopCalendarWidget.TranslateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:DesktopCalendarWidget"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Width="500" Height="396" MinWidth="420" MinHeight="300"
+        WindowStartupLocation="Manual" Background="{StaticResource WindowBackground}"
+        ShowInTaskbar="True" Icon="/Assets/app.ico"
+        WindowStyle="None" ResizeMode="CanResize"
+        Title="{x:Static loc:Loc.TranslateTitle}">
+    <!-- 不要标题栏，但仍要能拖边缘缩放：CaptionHeight=0 让顶部不当作标题栏，
+         ResizeBorderThickness 保留窗口四边的缩放热区（拖动由顶栏自己处理）。 -->
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0"
+                            CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </shell:WindowChrome.WindowChrome>
+    <Border Padding="12" BorderBrush="{StaticResource Border}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#EFE6DA" CornerRadius="9" Padding="8,3">
+                        <TextBlock x:Name="DirectionText" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource Accent}"/>
+                    </Border>
+                    <TextBlock x:Name="DetectText" Margin="8,0,0,0" FontSize="12" VerticalAlignment="Center" Foreground="{StaticResource MutedInk}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ToggleButton x:Name="TopmostToggle" Width="28" Height="26" FontSize="13" Click="TopmostToggle_Click"
+                                  ToolTip="{x:Static loc:Loc.TranslateTopmostCheck}">📌</ToggleButton>
+                    <Button Content="{x:Static loc:Loc.TranslateSwap}" Width="28" Height="26" FontSize="13" Margin="4,0,0,0"
+                            Click="SwapButton_Click"/>
+                    <Button Content="✕" Width="28" Height="26" FontSize="13" Margin="4,0,0,0"
+                            ToolTip="{x:Static loc:Loc.TranslateClose}" Click="CloseButton_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <Border Grid.Row="1" Margin="0,8,0,0" CornerRadius="10" BorderBrush="{StaticResource Border}" BorderThickness="1"
+                    Background="{StaticResource PanelBackground}">
+                <Grid>
+                    <TextBox x:Name="InputBox" BorderThickness="0" Background="Transparent" Padding="10,8" FontSize="14"
+                             AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             TextChanged="InputBox_TextChanged" PreviewKeyDown="InputBox_PreviewKeyDown"/>
+                    <TextBlock x:Name="InputHint" Margin="11,10,11,10" FontSize="14" IsHitTestVisible="False"
+                               Text="{x:Static loc:Loc.TranslateInputHint}" Foreground="{StaticResource MutedInk}" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="2" Margin="0,6,0,0" CornerRadius="10" BorderBrush="{StaticResource Border}" BorderThickness="1"
+                    Background="#F1ECE3">
+                <Grid>
+                    <TextBox x:Name="ResultBox" BorderThickness="0" Background="Transparent" Padding="10,8" FontSize="14"
+                             IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                             Foreground="{StaticResource Ink}" TextChanged="ResultBox_TextChanged"/>
+                    <TextBlock x:Name="ResultHint" Margin="11,10,11,10" FontSize="14" IsHitTestVisible="False"
+                               Text="{x:Static loc:Loc.TranslateResultHint}" Foreground="{StaticResource MutedInk}" TextWrapping="Wrap"/>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="3" Margin="0,8,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="RunButton" Content="{x:Static loc:Loc.TranslateRun}" FontSize="12" Padding="12,5"
+                            Background="{StaticResource Accent}" Foreground="White" Click="RunButton_Click"/>
+                    <Button x:Name="CopyButton" Content="{x:Static loc:Loc.TranslateCopy}" FontSize="12" Padding="12,5" Margin="6,0,0,0"
+                            Click="CopyButton_Click"/>
+                    <Button Content="{x:Static loc:Loc.TranslateClear}" FontSize="12" Padding="12,5" Margin="6,0,0,0"
+                            Click="ClearButton_Click"/>
+                </StackPanel>
+                <TextBlock x:Name="CharCountText" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="11"
+                           Foreground="{StaticResource MutedInk}"/>
+            </Grid>
+
+            <TextBlock x:Name="StatusText" Grid.Row="4" Margin="0,6,0,0" FontSize="11" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" Foreground="{StaticResource MutedInk}"/>
+        </Grid>
+    </Border>
+</Window>

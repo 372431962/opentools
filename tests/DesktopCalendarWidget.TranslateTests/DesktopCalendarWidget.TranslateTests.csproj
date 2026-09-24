@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../DesktopCalendarWidget/Models.cs" Link="Production/Models.cs" />
+    <Compile Include="../../DesktopCalendarWidget/WindowPlacement.cs" Link="Production/WindowPlacement.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Loc.cs" Link="Production/Loc.cs" />
+    <Compile Include="../../DesktopCalendarWidget/HttpSupport.cs" Link="Production/HttpSupport.cs" />
+    <Compile Include="../../DesktopCalendarWidget/SettingsService.cs" Link="Production/SettingsService.cs" />
+    <Compile Include="../../DesktopCalendarWidget/HolidayService.cs" Link="Production/HolidayService.cs" />
+    <Compile Include="../../DesktopCalendarWidget/LunarCalendarConverter.cs" Link="Production/LunarCalendarConverter.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/TranslateModels.cs" Link="Production/Translate/TranslateModels.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/TranslateHttp.cs" Link="Production/Translate/TranslateHttp.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/TranslateCache.cs" Link="Production/Translate/TranslateCache.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/TranslateDictionary.cs" Link="Production/Translate/TranslateDictionary.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/LanguageDetector.cs" Link="Production/Translate/LanguageDetector.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/MyMemoryTranslateProvider.cs" Link="Production/Translate/MyMemoryTranslateProvider.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/GoogleTranslateProvider.cs" Link="Production/Translate/GoogleTranslateProvider.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/OfflineDictionaryProvider.cs" Link="Production/Translate/OfflineDictionaryProvider.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Translate/TranslateService.cs" Link="Production/Translate/TranslateService.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/WeatherModels.cs" Link="Production/Weather/WeatherModels.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/WeatherCodes.cs" Link="Production/Weather/WeatherCodes.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/OpenMeteoWeatherProvider.cs" Link="Production/Weather/OpenMeteoWeatherProvider.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/WttrInWeatherProvider.cs" Link="Production/Weather/WttrInWeatherProvider.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/WeatherService.cs" Link="Production/Weather/WeatherService.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Update/UpdateService.cs" Link="Production/Update/UpdateService.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- 与主工程同名的资源，才能在这里验证 TranslateDictionary.LoadEmbedded 真的读得到词条。 -->
+    <EmbeddedResource Include="../../DesktopCalendarWidget/Translate/Data/zh-en-dict.json" Link="Production/Translate/Data/zh-en-dict.json"
+                      LogicalName="DesktopCalendarWidget.Translate.Data.zh-en-dict.json" />
+  </ItemGroup>
+</Project>
