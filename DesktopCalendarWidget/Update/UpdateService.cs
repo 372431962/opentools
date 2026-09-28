@@ -156,7 +156,9 @@ public sealed class UpdateService
         var target = Path.Combine(updatesFolder, $"DesktopCalendarWidget-{info.VersionText}-win-x64.msi");
         try
         {
-            using var response = await Client.GetAsync(info.InstallerUrl!, HttpCompletionOption.ResponseHeadersRead, token);
+            using var request = new HttpRequestMessage(HttpMethod.Get, info.InstallerUrl!);
+            HttpSupport.ApplyUserAgent(request);
+            using var response = await Client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
             var total = response.Content.Headers.ContentLength ?? 0;
             await using (var source = await response.Content.ReadAsStreamAsync(token))
@@ -214,7 +216,11 @@ public sealed class UpdateService
         if (string.IsNullOrWhiteSpace(info.ChecksumsUrl))
             throw new InvalidDataException(Loc.UpdateVerifyFailed);
 
-        var text = await Client.GetStringAsync(info.ChecksumsUrl, token);
+        using var request = new HttpRequestMessage(HttpMethod.Get, info.ChecksumsUrl);
+        HttpSupport.ApplyUserAgent(request);
+        using var response = await Client.SendAsync(request, token);
+        response.EnsureSuccessStatusCode();
+        var text = await response.Content.ReadAsStringAsync(token);
         await VerifyChecksumAsync(info, target, text, token);
     }
 

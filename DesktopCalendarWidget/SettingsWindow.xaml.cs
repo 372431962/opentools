@@ -21,7 +21,6 @@ public partial class SettingsWindow : Window
 
     private readonly SettingsService settingsService = new();
     private readonly HolidayService holidayService = new();
-    private readonly WeatherService weatherService;
     private readonly UpdateFlow? updateFlow;
     private readonly CancellationTokenSource closeCancellation = new();
     private readonly DateTime currentWeekStart = RestSchedule.WeekStart(DateTime.Today);
@@ -29,6 +28,9 @@ public partial class SettingsWindow : Window
     private readonly string originalLanguage;
     private readonly bool originalShowWeather;
     private readonly string originalWeatherCity;
+    private readonly WeatherLocation? originalWeatherLocation;
+    private List<WeatherLocation> weatherLocations = [];
+    private bool updatingWeatherLocationUi;
     private readonly int originalWeatherRefresh;
     private bool anchorWeekIsSingleAtLoad;
     private bool scheduleReady;
@@ -48,7 +50,7 @@ public partial class SettingsWindow : Window
     /// </summary>
     public bool HolidaysPersisted { get; private set; }
 
-    public SettingsWindow(WidgetSettings settings, List<HolidayEntry> holidays, UpdateFlow? updateFlow, WeatherService? sharedWeather = null)
+    public SettingsWindow(WidgetSettings settings, List<HolidayEntry> holidays, UpdateFlow? updateFlow)
     {
         InitializeComponent();
         Closing += (_, _) => closeCancellation.Cancel();
@@ -64,9 +66,6 @@ public partial class SettingsWindow : Window
         // 旧配置里可能是 0 或超出区间的值，先归一再回填，否则下拉会静默选中第一项。
         originalWeatherRefresh = NormalizeRefresh(settings.WeatherRefreshMinutes);
         Holidays = holidays.ToList();
-        // 与主窗口共用同一个天气服务：两个实例会各自写同一个缓存文件，
-        // 且实例级的 IsLoading 互相看不见，容易把「正在刷新」误报成「更新失败」。
-        weatherService = sharedWeather ?? new WeatherService(Path.Combine(settingsService.DataFolder, "weather.json"));
 
         LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.LanguageChinese });
         LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.LanguageEnglish });
@@ -80,7 +79,16 @@ public partial class SettingsWindow : Window
         UpdateUrlBox.Text = settings.HolidayUpdateUrl;
 
         ShowWeatherCheck.IsChecked = settings.ShowWeather;
-        WeatherCityBox.Text = originalWeatherCity;
+        originalWeatherLocation = settings.WeatherLocation;
+        updatingWeatherLocationUi = true;
+        WeatherCityBox.Text = originalWeatherLocation?.DisplayName ?? originalWeatherCity;
+        weatherLocations = originalWeatherLocation is null ? [] : [originalWeatherLocation];
+        WeatherLocationCombo.ItemsSource = weatherLocations;
+        WeatherLocationCombo.SelectedItem = originalWeatherLocation;
+        updatingWeatherLocationUi = false;
+        WeatherLocationNote.Text = originalWeatherLocation is { HasCoordinates: true } selected
+            ? Loc.Fmt(Loc.WeatherSelectedLocation, selected.DisplayName, selected.Latitude, selected.Longitude)
+            : Loc.WeatherChooseLocation;
         if (!refreshChoices.Contains(originalWeatherRefresh)) refreshChoices.Add(originalWeatherRefresh);
         refreshChoices.Sort();
         foreach (var minutes in refreshChoices) WeatherRefreshCombo.Items.Add(new ComboBoxItem { Content = minutes.ToString(CultureInfo.InvariantCulture) });
@@ -220,6 +228,62 @@ public partial class SettingsWindow : Window
             UpdateButton.IsEnabled = true;
         }
     }
+
+    private async void WeatherSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        var query = WeatherCityBox.Text.Trim();
+        if (query.Length == 0)
+        {
+            WeatherStatus.Text = Loc.WeatherSearchPrompt;
+            return;
+        }
+        WeatherSearchButton.IsEnabled = false;
+        WeatherStatus.Text = Loc.WeatherSearching;
+        try
+        {
+            weatherLocations = await WeatherService.SearchLocationsAsync(query, closeCancellation.Token);
+            WeatherLocationCombo.ItemsSource = weatherLocations;
+            WeatherLocationCombo.SelectedIndex = -1;
+            WeatherStatus.Text = weatherLocations.Count == 0 ? Loc.WeatherNoLocations : "";
+        }
+        catch (OperationCanceledException) when (closeCancellation.IsCancellationRequested)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            WeatherStatus.Text = Loc.Fmt(Loc.WeatherFailed, ex.Message);
+        }
+        finally
+        {
+            WeatherSearchButton.IsEnabled = true;
+        }
+    }
+
+    private void WeatherCityBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (updatingWeatherLocationUi || WeatherLocationCombo is null) return;
+        if (WeatherLocationCombo.SelectedItem is WeatherLocation selected &&
+            !string.Equals(WeatherCityBox.Text, selected.DisplayName, StringComparison.Ordinal))
+        {
+            WeatherLocationCombo.SelectedItem = null;
+            Settings.WeatherLocation = null;
+            WeatherLocationNote.Text = Loc.WeatherChooseLocation;
+        }
+    }
+
+    private void WeatherLocationCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (updatingWeatherLocationUi || WeatherLocationCombo.SelectedItem is not WeatherLocation selected) return;
+        updatingWeatherLocationUi = true;
+        WeatherCityBox.Text = selected.DisplayName;
+        updatingWeatherLocationUi = false;
+        Settings.WeatherLocation = selected;
+        // 极端情况下（如手工编辑过配置）DisplayName 可能为空，不能把城市名覆盖成空串。
+        if (selected.DisplayName.Length > 0) Settings.WeatherCity = selected.DisplayName;
+        WeatherChanged = true;
+        WeatherLocationNote.Text = Loc.Fmt(Loc.WeatherSelectedLocation, selected.DisplayName, selected.Latitude, selected.Longitude);
+    }
     private async void WeatherUpdateButton_Click(object sender, RoutedEventArgs e)
     {
         WeatherUpdateButton.IsEnabled = false;
@@ -228,8 +292,12 @@ public partial class SettingsWindow : Window
         try
         {
             var city = WeatherCityBox.Text.Trim();
-            var updated = await weatherService.LoadAsync(city, TimeSpan.Zero, force: true, closeCancellation.Token);
-            var current = weatherService.Current;
+            // 预览用独立实例与临时缓存：用户可能点「取消」，
+            // 不能把尚未保存的城市写进共享服务和主窗口正在使用的缓存文件。
+            var previewPath = Path.Combine(Path.GetTempPath(), "DesktopCalendarWidget-weather-preview.json");
+            var preview = new WeatherService(previewPath);
+            var updated = await preview.LoadAsync(city, Settings.WeatherLocation, TimeSpan.Zero, force: true, closeCancellation.Token);
+            var current = preview.Current;
             if (!updated || current is null)
             {
                 WeatherStatus.Text = Loc.Fmt(Loc.WeatherFailed, Loc.WeatherUnknown);
@@ -340,12 +408,23 @@ public partial class SettingsWindow : Window
         Settings.ShowWeather = ShowWeatherCheck.IsChecked == true;
         var city = WeatherCityBox.Text.Trim();
         Settings.WeatherCity = city.Length == 0 ? WidgetSettings.DefaultWeatherCity : city;
+        if (WeatherLocationCombo.SelectedItem is WeatherLocation selectedLocation)
+        {
+            Settings.WeatherLocation = selectedLocation;
+            if (selectedLocation.DisplayName.Length > 0) Settings.WeatherCity = selectedLocation.DisplayName;
+        }
+        else if (Settings.WeatherLocation is not null &&
+            !string.Equals(Settings.WeatherLocation.DisplayName, Settings.WeatherCity, StringComparison.Ordinal))
+        {
+            Settings.WeatherLocation = null;
+        }
         Settings.WeatherRefreshMinutes = WeatherRefreshCombo.SelectedIndex >= 0
             ? refreshChoices[WeatherRefreshCombo.SelectedIndex]
             : originalWeatherRefresh;
         WeatherChanged = WeatherChanged ||
             Settings.ShowWeather != originalShowWeather ||
             !string.Equals(Settings.WeatherCity, originalWeatherCity, StringComparison.OrdinalIgnoreCase) ||
+            !SameLocation(Settings.WeatherLocation, originalWeatherLocation) ||
             Settings.WeatherRefreshMinutes != originalWeatherRefresh;
 
         Settings.TranslateProvider = TranslateProviderCombo.SelectedIndex switch
@@ -380,6 +459,14 @@ public partial class SettingsWindow : Window
                 MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
         DialogResult = true;
         Close();
+    }
+    private static bool SameLocation(WeatherLocation? left, WeatherLocation? right)
+    {
+        if (left is null || right is null) return left is null && right is null;
+        return left.HasCoordinates && right.HasCoordinates &&
+            Math.Abs(left.Latitude - right.Latitude) < 0.00001 &&
+            Math.Abs(left.Longitude - right.Longitude) < 0.00001 &&
+            string.Equals(left.DisplayName, right.DisplayName, StringComparison.OrdinalIgnoreCase);
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)

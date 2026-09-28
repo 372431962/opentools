@@ -18,12 +18,40 @@ public enum WeatherCondition
     Thunderstorm
 }
 
+/// <summary>用户明确选择的天气地点。坐标决定预报位置，行政区字段用于显示完整路径。</summary>
+public sealed class WeatherLocation
+{
+    public string Query { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Admin1 { get; set; }
+    public string? Admin2 { get; set; }
+    public string? Admin3 { get; set; }
+    public string? Country { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+
+    [JsonIgnore]
+    public string DisplayName => string.Join(" · ", new[] { Name, Admin3, Admin2, Admin1, Country }
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x!.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase));
+
+    public bool HasCoordinates => double.IsFinite(Latitude) && double.IsFinite(Longitude) &&
+        Latitude is >= -90 and <= 90 && Longitude is >= -180 and <= 180;
+}
+
 /// <summary>某一天的天气。日期用 yyyy-MM-dd 文本持久化，与 HolidayEntry 同样的约定。</summary>
 public sealed class WeatherDay
 {
     public string Date { get; set; } = "";
 
     public WeatherCondition Condition { get; set; }
+    /// <summary>当天实时天气现象。仅当天有值，缺失时回退到日预报现象。</summary>
+    public WeatherCondition? CurrentCondition { get; set; }
+    /// <summary>按日历日期选择现象：当天优先实时观测，其他日期使用日预报。</summary>
+    public WeatherCondition ConditionFor(DateTime date) => date.Date == DateValue && CurrentCondition.HasValue
+        ? CurrentCondition.Value
+        : Condition;
 
     /// <summary>当天最高温（摄氏度）。缺数据时为 NaN，UI 不显示温度。</summary>
     public double TempMax { get; set; } = double.NaN;

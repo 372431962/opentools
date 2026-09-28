@@ -15,6 +15,16 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
     public static string BuildUrl(string city) =>
         $"https://wttr.in/{Uri.EscapeDataString(city.Trim())}?format=j1&lang=en";
 
+    /// <summary>
+    /// 纯函数：按查询构造请求 URL。有坐标时优先用坐标（~lat,lon），
+    /// 裸地名会被 wttr.in 解析到全球任意同名地，用户明确选过地点时不能丢坐标。
+    /// </summary>
+    public static string BuildUrl(WeatherQuery query) =>
+        query is { Latitude: not null, Longitude: not null }
+            ? string.Format(CultureInfo.InvariantCulture,
+                "https://wttr.in/~{0},{1}?format=j1&lang=en", query.Latitude.Value, query.Longitude.Value)
+            : BuildUrl(query.City);
+
     /// <summary>纯函数：解析响应。字段类型不符时跳过该条，整体不可识别时返回 null。</summary>
     public static List<WeatherDay>? ParseResponse(string json)
     {
@@ -24,6 +34,7 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
             if (!document.RootElement.TryGetProperty("weather", out var weather) ||
                 weather.ValueKind != JsonValueKind.Array) return null;
 
+            var currentCondition = WeatherCodes.FromDescription(DescribeCurrent(document.RootElement));
             var days = new List<WeatherDay>();
             foreach (var item in weather.EnumerateArray())
             {
@@ -38,6 +49,7 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
                         ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
                         : date,
                     Condition = WeatherCodes.FromDescription(Describe(item)),
+                    CurrentCondition = days.Count == 0 && currentCondition != WeatherCondition.Unknown ? currentCondition : null,
                     TempMax = DoubleValue(item, "maxtempC"),
                     TempMin = DoubleValue(item, "mintempC")
                 });
@@ -56,19 +68,39 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
 
     public async Task<List<WeatherDay>?> GetDaysAsync(WeatherQuery query, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(query.City)) return null;
-        var json = await WeatherHttp.GetStringAsync(BuildUrl(query.City), token);
+        if (query.Latitude is null && string.IsNullOrWhiteSpace(query.City)) return null;
+        var json = await WeatherHttp.GetStringAsync(BuildUrl(query), token);
         return ParseResponse(json);
     }
 
-    /// <summary>白天的天气描述最能代表整天，取 index=0 那一档。</summary>
+    /// <summary>优先取正午时段作为整日预报，避免用午夜的状况代表全天。</summary>
     private static string? Describe(JsonElement day)
     {
         if (!day.TryGetProperty("hourly", out var hourly) || hourly.ValueKind != JsonValueKind.Array ||
             hourly.GetArrayLength() == 0) return null;
-        var first = hourly[0];
-        if (first.ValueKind != JsonValueKind.Object ||
-            !first.TryGetProperty("weatherDesc", out var descs) || descs.ValueKind != JsonValueKind.Array ||
+        var selected = hourly[0];
+        foreach (var item in hourly.EnumerateArray())
+        {
+            if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty("time", out var time) &&
+                time.ValueKind == JsonValueKind.String && time.GetString() == "1200")
+            {
+                selected = item;
+                break;
+            }
+        }
+        return DescriptionValue(selected);
+    }
+
+    private static string? DescribeCurrent(JsonElement root)
+    {
+        if (!root.TryGetProperty("current_condition", out var current) ||
+            current.ValueKind != JsonValueKind.Array || current.GetArrayLength() == 0) return null;
+        return current[0].ValueKind == JsonValueKind.Object ? DescriptionValue(current[0]) : null;
+    }
+
+    private static string? DescriptionValue(JsonElement item)
+    {
+        if (!item.TryGetProperty("weatherDesc", out var descs) || descs.ValueKind != JsonValueKind.Array ||
             descs.GetArrayLength() == 0) return null;
         var text = descs[0];
         return text.ValueKind == JsonValueKind.Object && text.TryGetProperty("value", out var value) &&

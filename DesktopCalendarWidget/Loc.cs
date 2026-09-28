@@ -177,6 +177,14 @@ internal static class Loc
     public static string SectionWeather => Get(nameof(SectionWeather));
     public static string WeatherCheck => Get(nameof(WeatherCheck));
     public static string WeatherCityLabel => Get(nameof(WeatherCityLabel));
+    public static string WeatherSearchButton => Get(nameof(WeatherSearchButton));
+    public static string WeatherSearchPrompt => Get(nameof(WeatherSearchPrompt));
+    public static string WeatherSearching => Get(nameof(WeatherSearching));
+    public static string WeatherNoLocations => Get(nameof(WeatherNoLocations));
+    public static string WeatherChooseLocation => Get(nameof(WeatherChooseLocation));
+    public static string WeatherSelectedLocation => Get(nameof(WeatherSelectedLocation));
+    public static string WeatherDistrictAccuracy => Get(nameof(WeatherDistrictAccuracy));
+    public static string WeatherLocationPrivacy => Get(nameof(WeatherLocationPrivacy));
     public static string WeatherRefreshLabel => Get(nameof(WeatherRefreshLabel));
     public static string WeatherUpdateButton => Get(nameof(WeatherUpdateButton));
     public static string WeatherUpdating => Get(nameof(WeatherUpdating));

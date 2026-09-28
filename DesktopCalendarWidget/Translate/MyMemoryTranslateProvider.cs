@@ -43,9 +43,11 @@ public sealed class MyMemoryTranslateProvider : ITranslateProvider
         return null;
     }
 
-    /// <summary>额度用尽时接口会把提示语塞进 translatedText，这种结果要当失败处理。</summary>
+    /// <summary>
+    /// 额度用尽时接口会把提示语塞进 translatedText，这种结果要当失败处理。
+    /// 只匹配官方告警前缀，不能对译文正文做子串匹配——「配额」的正常译文就是 "quota"。
+    /// </summary>
     private static bool IsQuotaMessage(string value) =>
-        value.Contains("quota", StringComparison.OrdinalIgnoreCase) ||
         value.Contains("MYMEMORY WARNING", StringComparison.OrdinalIgnoreCase);
 
     public async Task<string?> TranslateAsync(TranslateRequest request, CancellationToken token)

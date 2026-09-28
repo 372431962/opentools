@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../DesktopCalendarWidget/Models.cs" Link="Production/Models.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Weather/WeatherModels.cs" Link="Production/Weather/WeatherModels.cs" />
     <Compile Include="../../DesktopCalendarWidget/RestSchedule.cs" Link="Production/RestSchedule.cs" />
     <!-- Models 的语言开关读取 Loc，链接进来才能独立编译；测试不取资源文本。 -->
     <Compile Include="../../DesktopCalendarWidget/Loc.cs" Link="Production/Loc.cs" />

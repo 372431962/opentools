@@ -122,7 +122,7 @@ public partial class MainWindow : Window
         ApplyClickThrough();
         // 天气服务先建好并读入本地缓存，首屏就能显示上次的天气，不必等第一次联网刷新。
         weatherService ??= new WeatherService(Path.Combine(settingsService.DataFolder, "weather.json"));
-        weatherService.LoadFromCache(settings.WeatherCity);
+        weatherService.LoadFromCache(settings.WeatherCity, settings.WeatherLocation);
         RenderCalendar();
         StartWeather();
         ScheduleNextMidnightRefresh();
@@ -385,7 +385,7 @@ public partial class MainWindow : Window
             return;
         }
         var today = settings.ShowWeather && weatherMap.TryGetValue(DateTime.Today, out var day)
-            ? day.Condition
+            ? day.ConditionFor(DateTime.Today)
             : (WeatherCondition?)null;
         weatherScene.Apply(today);
     }
@@ -421,7 +421,7 @@ public partial class MainWindow : Window
             FontWeight = isToday ? FontWeights.Bold : FontWeights.Normal,
             Effect = (Effect)FindResource("TextShadow")
         });
-        if (weather is not null && BuildWeatherLine(weather) is { } weatherLine) stack.Children.Add(weatherLine);
+        if (weather is not null && BuildWeatherLine(weather, date) is { } weatherLine) stack.Children.Add(weatherLine);
         if (settings.ShowLunarEffective)
         {
             stack.Children.Add(new TextBlock
@@ -488,9 +488,9 @@ public partial class MainWindow : Window
     /// 格子上的天气那一行：现象图标 + 最高/最低温度。图标比温度大一号，隔着几米也能认出天气；
     /// 两者都拿不到时返回 null，这一行直接不占高度。完整信息在悬停提示里。
     /// </summary>
-    private UIElement? BuildWeatherLine(WeatherDay weather)
+    private UIElement? BuildWeatherLine(WeatherDay weather, DateTime date)
     {
-        var icon = WeatherCodes.Icon(weather.Condition);
+        var icon = WeatherCodes.Icon(weather.ConditionFor(date));
         var range = weather.HasTemperature ? $"{(int)Math.Round(weather.TempMax)}/{(int)Math.Round(weather.TempMin)}°" : null;
         if (icon.Length == 0 && range is null) return null;
         if (range is null) return WeatherText(icon, 16);
@@ -510,9 +510,9 @@ public partial class MainWindow : Window
         Effect = (Effect)FindResource("TextShadow")
     };
 
-    private static string BuildWeatherTip(WeatherDay weather)
+    private static string BuildWeatherTip(WeatherDay weather, DateTime date)
     {
-        var label = WeatherCodes.Label(weather.Condition);
+        var label = WeatherCodes.Label(weather.ConditionFor(date));
         var text = weather.HasTemperature
             ? Loc.Fmt(Loc.WeatherTooltipFormat, label, (int)Math.Round(weather.TempMin), (int)Math.Round(weather.TempMax))
             : label;
@@ -534,7 +534,7 @@ public partial class MainWindow : Window
         var first = holiday is null || (!holiday.IsWorkday && !holiday.IsHoliday)
             ? dateText
             : $"{dateText} · {holiday.Name}{(holiday.IsWorkday ? Loc.SuffixWorkdayAdjust : Loc.SuffixHolidayOff)}";
-        return weather is null ? first : $"{first}{Environment.NewLine}{BuildWeatherTip(weather)}";
+        return weather is null ? first : $"{first}{Environment.NewLine}{BuildWeatherTip(weather, date)}";
     }
 
     private Brush FindBrush(string key) => (Brush)FindResource(key);
@@ -617,7 +617,7 @@ public partial class MainWindow : Window
 
     private void OpenSettings()
     {
-        var dialog = new SettingsWindow(settings, holidays, updateFlow, weatherService) { Owner = this };
+        var dialog = new SettingsWindow(settings, holidays, updateFlow) { Owner = this };
         if (dialog.ShowDialog() != true)
         {
             // 下载与「保存本地数据」都会即时落盘，取消也要让内存跟上磁盘，否则要等重启才对得上。
@@ -692,7 +692,7 @@ public partial class MainWindow : Window
         try
         {
             var maxAge = TimeSpan.FromMinutes(NormalizedRefreshMinutes(settings.WeatherRefreshMinutes));
-            await weatherService.LoadAsync(settings.WeatherCity, maxAge, force);
+            await weatherService.LoadAsync(settings.WeatherCity, settings.WeatherLocation, maxAge, force);
             // Map 没变但标记为过期时，也要更新图例，避免把旧城市数据当成实时天气。
             if (IsLoaded && (!ReferenceEquals(weatherService.Map, renderedWeatherMap) ||
                 weatherService.IsStale != renderedWeatherStale)) RenderCalendar();

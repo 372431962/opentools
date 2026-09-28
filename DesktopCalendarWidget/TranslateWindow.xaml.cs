@@ -65,6 +65,9 @@ public partial class TranslateWindow : Window
     {
         var resumeTranslation = (pending is not null || debounceTimer.IsEnabled) &&
             !string.IsNullOrWhiteSpace(InputBox.Text);
+        // 新实例构造时会加载磁盘缓存快照；必须先把本实例的内存缓存落盘，
+        // 否则两个实例各持一份新旧快照，之后写盘互相覆盖会丢词条。
+        translateService.Flush();
         var replacement = new TranslateWindow(settings, settingsService)
         {
             Left = Left,

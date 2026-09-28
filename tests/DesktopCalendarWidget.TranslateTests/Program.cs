@@ -36,11 +36,13 @@ internal static class Program
         const string myMemorySample = """{"responseData":{"translatedText":"It's a nice day."},"responseStatus":200}""";
         const string myMemoryQuota = """{"responseData":{"translatedText":"MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY"} ,"responseStatus":200}""";
         const string openMeteoSample =
-            """{"latitude":39.89,"daily":{"time":["2026-09-21","2026-09-22","2026-09-23"],"weather_code":[2,61,3],"temperature_2m_max":[28.4,19.2,21.0],"temperature_2m_min":[18.1,12.3,null],"precipitation_probability_max":[10,80,null]}}""";
+            """{"latitude":39.89,"current":{"time":"2026-09-21T09:00","weather_code":0},"daily":{"time":["2026-09-21","2026-09-22","2026-09-23"],"weather_code":[2,61,3],"temperature_2m_max":[28.4,19.2,21.0],"temperature_2m_min":[18.1,12.3,null],"precipitation_probability_max":[10,80,null]}}""";
         const string wttrSample =
-            """{"weather":[{"date":"2026-09-21","maxtempC":"28","mintempC":"18","hourly":[{"weatherDesc":[{"value":"Partly cloudy"}]}]}]}""";
+            """{"current_condition":[{"weatherDesc":[{"value":"Smoky haze"}]}],"weather":[{"date":"2026-09-21","maxtempC":"28","mintempC":"18","hourly":[{"time":"0","weatherDesc":[{"value":"Overcast"}]},{"time":"1200","weatherDesc":[{"value":"Sunny"}]}]}]}""";
         const string geocodeSample =
-            """{"results":[{"id":1,"name":"北京","latitude":39.9075,"longitude":116.39723}],"generationtime_ms":0.01}""";
+            """{"results":[{"id":1,"name":"浦东新区","admin2":"上海市","admin1":"上海","country":"中国","latitude":31.22114,"longitude":121.5447},{"id":2,"name":"朝阳区","admin2":"北京市","admin1":"北京","country":"中国","latitude":39.9219,"longitude":116.4436}],"generationtime_ms":0.01}""";
+        const string photonSample =
+            """{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"type":"district","name":"天河区","city":"广州市","state":"广东省","country":"中国","countrycode":"CN"},"geometry":{"type":"Point","coordinates":[113.356424,23.12712]}}]}""";
 
         // ---- 语种识别 ----
         Run("detect pure chinese", () => Equal(TextLanguage.Chinese, LanguageDetector.Detect("今天天气很好"), "language"));
@@ -100,6 +102,8 @@ internal static class Program
             Equal("It's a nice day.", MyMemoryTranslateProvider.ParseResponse(myMemorySample), "parse"));
         Run("mymemory quota message counts as failure", () =>
             Equal(null, MyMemoryTranslateProvider.ParseResponse(myMemoryQuota), "parse"));
+        Run("mymemory translation of the word quota is not mistaken for exhaustion", () =>
+            Equal("quota", MyMemoryTranslateProvider.ParseResponse("""{"responseData":{"translatedText":"quota"},"responseStatus":200}"""), "parse"));
 
         // ---- 翻译缓存 ----
         Run("cache stores and returns by direction", () =>
@@ -227,6 +231,7 @@ internal static class Program
         Run("open-meteo url requests daily fields", () =>
         {
             var url = OpenMeteoWeatherProvider.BuildUrl(39.9075, 116.39723);
+            True(url.Contains("current=weather_code", StringComparison.Ordinal), "current weather_code");
             True(url.Contains("weather_code", StringComparison.Ordinal), "weather_code");
             True(url.Contains("temperature_2m_max", StringComparison.Ordinal), "max");
             True(url.Contains("latitude=39.9075", StringComparison.Ordinal), "latitude");
@@ -235,11 +240,21 @@ internal static class Program
         {
             var days = OpenMeteoWeatherProvider.ParseResponse(openMeteoSample);
             True(days is not null && days.Count == 3, "count");
+            Equal(WeatherCondition.Clear, days![0].CurrentCondition, "current condition");
             Equal(WeatherCondition.PartlyCloudy, days![0].Condition, "first condition");
             Equal(28.4, days[0].TempMax, "first max");
             Equal(10, days[0].PrecipitationProbability, "first precip");
             Equal(false, days[2].HasTemperature, "missing temperature");
             Equal(null, days[2].PrecipitationProbability, "missing precip");
+        });
+        Run("current condition only replaces its matching date forecast", () =>
+        {
+            var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var todayForecast = new WeatherDay { Date = today, Condition = WeatherCondition.Drizzle, CurrentCondition = WeatherCondition.Clear };
+            var futureForecast = new WeatherDay { Date = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Condition = WeatherCondition.Rain };
+            Equal(WeatherCondition.Clear, todayForecast.ConditionFor(DateTime.Today), "today prefers current observation");
+            Equal(WeatherCondition.Drizzle, todayForecast.ConditionFor(DateTime.Today.AddDays(1)), "today current observation does not leak into tomorrow");
+            Equal(WeatherCondition.Rain, futureForecast.ConditionFor(DateTime.Today.AddDays(1)), "future keeps daily forecast");
         });
         Run("open-meteo response rejects junk", () =>
             Equal(null, OpenMeteoWeatherProvider.ParseResponse("{\"daily\":{}}"), "parse"));
@@ -247,21 +262,58 @@ internal static class Program
         {
             var days = WttrInWeatherProvider.ParseResponse(wttrSample);
             True(days is not null && days.Count == 1, "count");
-            Equal(WeatherCondition.PartlyCloudy, days![0].Condition, "condition");
+            Equal(WeatherCondition.Clear, days![0].Condition, "daytime condition");
+            Equal(WeatherCondition.Fog, days[0].CurrentCondition, "current condition");
             Equal(28.0, days[0].TempMax, "max");
             Equal(18.0, days[0].TempMin, "min");
         });
         Run("wttr url escapes the city", () =>
             True(WttrInWeatherProvider.BuildUrl("纽约 北京").Contains("%20", StringComparison.Ordinal), "escape"));
+        Run("wttr url prefers coordinates over the bare place name", () =>
+            True(WttrInWeatherProvider.BuildUrl(new WeatherQuery("中关村", 39.98, 116.31))
+                .Contains("/~39.98,116.31?", StringComparison.Ordinal), "coordinate"));
+        Run("wttr url falls back to the city without coordinates", () =>
+            True(WttrInWeatherProvider.BuildUrl(new WeatherQuery("上海", null, null))
+                .Contains(Uri.EscapeDataString("上海"), StringComparison.Ordinal), "city"));
         Run("geocode response parses coordinates", () =>
         {
             var result = WeatherService.ParseGeocode(geocodeSample);
             True(result is not null, "null");
-            Equal(39.9075, result!.Value.Latitude, "latitude");
-            Equal(116.39723, result.Value.Longitude, "longitude");
+            Equal(31.22114, result!.Value.Latitude, "latitude");
+            Equal(121.5447, result.Value.Longitude, "longitude");
         });
         Run("geocode response rejects an empty result", () =>
             Equal(null, WeatherService.ParseGeocode("{\"results\":[]}"), "parse"));
+        Run("geocode url requests multiple candidates", () =>
+        {
+            var url = WeatherService.BuildGeocodeUrl("浦东 新区");
+            True(url.Contains("count=10", StringComparison.Ordinal), "candidate count");
+            True(url.Contains(Uri.EscapeDataString("浦东 新区"), StringComparison.Ordinal), "query escaped");
+        });
+        Run("geocode candidates keep district path", () =>
+        {
+            var locations = WeatherService.ParseGeocodeCandidates(geocodeSample, "浦东新区");
+            Equal(2, locations.Count, "candidate count");
+            Equal("浦东新区 · 上海市 · 上海 · 中国", locations[0].DisplayName, "district path");
+            Equal("浦东新区", locations[0].Query, "query");
+            Equal(31.22114, locations[0].Latitude, "latitude");
+        });
+        Run("geocode candidates reject malformed results", () =>
+        {
+            Equal(0, WeatherService.ParseGeocodeCandidates("{\"results\":[{\"name\":123},{\"name\":\"bad\",\"latitude\":1}]}" ).Count, "bad candidates");
+            Equal(0, WeatherService.ParseGeocodeCandidates("not json").Count, "bad json");
+        });
+        Run("geocode candidates survive a non-object root", () =>
+            // root 是 JSON 数组时 TryGetProperty 抛 InvalidOperationException，必须当无结果处理而不是崩掉。
+            Equal(0, WeatherService.ParseGeocodeCandidates("[1,2,3]").Count, "array root"));
+        Run("photon candidates parse district path", () =>
+        {
+            var locations = WeatherService.ParsePhotonCandidates(photonSample, "天河区");
+            Equal(1, locations.Count, "photon candidate count");
+            Equal("天河区 · 广州市 · 广东省 · 中国", locations[0].DisplayName, "photon district path");
+            Equal(113.356424, locations[0].Longitude, "photon longitude");
+            Equal(23.12712, locations[0].Latitude, "photon latitude");
+        });
         Run("snapshot map keys by date", () =>
         {
             var snapshot = new WeatherSnapshot { Days = [new WeatherDay { Date = "2026-09-21", TempMax = 1, TempMin = 0 }] };
@@ -280,6 +332,42 @@ internal static class Program
                 True(service.IsStale, "old city's cached weather must be marked stale on first render");
                 service.LoadFromCache("上海");
                 True(!service.IsStale, "matching city's cache stays fresh");
+            }
+            finally { File.Delete(path); }
+        });
+        Run("startup weather cache matches selected coordinates", () =>
+        {
+            var path = Path.Combine(Environment.GetEnvironmentVariable("PI_SCRATCH_DIR") ?? AppContext.BaseDirectory,
+                $"weather-location-{Guid.NewGuid():N}.json");
+            try
+            {
+                var snapshot = new WeatherSnapshot
+                {
+                    City = "浦东新区 · 上海市 · 上海 · 中国", Latitude = 31.22114, Longitude = 121.5447,
+                    Days = [new WeatherDay { Date = "2026-09-21", TempMax = 20, TempMin = 10 }]
+                };
+                File.WriteAllText(path, System.Text.Json.JsonSerializer.Serialize(snapshot));
+                var service = new WeatherService(path, []);
+                var same = new WeatherLocation { Name = "浦东新区", Admin2 = "上海市", Admin1 = "上海", Country = "中国", Latitude = 31.22114, Longitude = 121.5447 };
+                var other = new WeatherLocation { Name = "朝阳区", Admin2 = "北京市", Admin1 = "北京", Country = "中国", Latitude = 39.9219, Longitude = 116.4436 };
+                service.LoadFromCache("ignored", same);
+                Equal(false, service.IsStale, "same coordinates");
+                service.LoadFromCache("ignored", other);
+                Equal(true, service.IsStale, "different coordinates");
+            }
+            finally { File.Delete(path); }
+        });
+        Run("selected location coordinates reach weather provider", () =>
+        {
+            var path = Path.Combine(Environment.GetEnvironmentVariable("PI_SCRATCH_DIR") ?? AppContext.BaseDirectory,
+                $"weather-query-{Guid.NewGuid():N}.json");
+            try
+            {
+                var provider = new RecordingWeatherProvider();
+                var service = new WeatherService(path, [provider]);
+                var location = new WeatherLocation { Name = "浦东新区", Latitude = 31.22114, Longitude = 121.5447 };
+                True(service.LoadAsync("浦东新区", location, TimeSpan.Zero, force: true).GetAwaiter().GetResult(), "refresh");
+                True(provider.LastQuery is { Latitude: 31.22114, Longitude: 121.5447 }, "query coordinates");
             }
             finally { File.Delete(path); }
         });
@@ -505,6 +593,7 @@ internal static class Program
             True(restored is not null, "settings loaded");
             Equal(700d, restored!.Width, "width");
             Equal("上海", restored.WeatherCity, "city");
+            Equal(null, restored.WeatherLocation, "legacy location stays empty");
         });
         Run("copy from transfers every persisted field", () =>
         {
@@ -513,6 +602,7 @@ internal static class Program
             static object Marker(string name, Type type)
             {
                 if (type == typeof(string)) return "marker-" + name;
+                if (type == typeof(WeatherLocation)) return new WeatherLocation { Query = "marker", Name = "marker", Latitude = 1.25, Longitude = 2.5 };
                 if (type == typeof(bool)) return true;
                 if (type == typeof(int)) return 987654;
                 if (type == typeof(int?)) return 987654;
@@ -530,7 +620,7 @@ internal static class Program
                 .Where(p => p.CanWrite && p.SetMethod is { IsPublic: true } &&
                             p.GetCustomAttributes(typeof(System.Text.Json.Serialization.JsonIgnoreAttribute), false).Length == 0)
                 .ToList();
-            True(props.Count >= 28, $"expected the persisted fields, got {props.Count}");
+            True(props.Count >= 29, $"expected the persisted fields, got {props.Count}");
             var source = new WidgetSettings();
             var target = new WidgetSettings();
             foreach (var p in props) p.SetValue(source, Marker(p.Name, p.PropertyType));
@@ -633,6 +723,17 @@ internal static class Program
             return [new WeatherDay { Date = "2026-09-21", TempMax = 20, TempMin = 10 }];
         }
     }
+    private sealed class RecordingWeatherProvider : IWeatherProvider
+    {
+        public string Name => "Recording";
+        public WeatherQuery? LastQuery { get; private set; }
+        public Task<List<WeatherDay>?> GetDaysAsync(WeatherQuery query, CancellationToken token)
+        {
+            LastQuery = query;
+            return Task.FromResult<List<WeatherDay>?>([new WeatherDay { Date = "2026-09-21", TempMax = 20, TempMin = 10 }]);
+        }
+    }
+
 
     private sealed class FakeProvider(string text) : ITranslateProvider
     {

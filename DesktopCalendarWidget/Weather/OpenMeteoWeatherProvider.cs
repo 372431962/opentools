@@ -49,6 +49,7 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
         "https://api.open-meteo.com/v1/forecast" +
         $"?latitude={latitude.ToString("0.####", CultureInfo.InvariantCulture)}" +
         $"&longitude={longitude.ToString("0.####", CultureInfo.InvariantCulture)}" +
+        "&current=weather_code" +
         "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
         $"&timezone=auto&past_days={PastDays}&forecast_days={ForecastDays}";
 
@@ -66,6 +67,15 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
             var maxes = ArrayProperty(daily, "temperature_2m_max");
             var mins = ArrayProperty(daily, "temperature_2m_min");
             var precip = ArrayProperty(daily, "precipitation_probability_max");
+            var current = document.RootElement.TryGetProperty("current", out var currentObject) &&
+                currentObject.ValueKind == JsonValueKind.Object ? currentObject : (JsonElement?)null;
+            var currentCode = current is JsonElement currentValue ? NumberProperty(currentValue, "weather_code") : null;
+            var currentDate = current is JsonElement currentTimeValue &&
+                currentTimeValue.TryGetProperty("time", out var timeValue) &&
+                timeValue.ValueKind == JsonValueKind.String &&
+                DateTime.TryParse(timeValue.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedCurrent)
+                    ? parsedCurrent.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    : null;
 
             var days = new List<WeatherDay>();
             for (var i = 0; i < times.GetArrayLength(); i++)
@@ -74,17 +84,20 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
                 if (time.ValueKind != JsonValueKind.String) continue;
                 var date = time.GetString();
                 if (string.IsNullOrEmpty(date)) continue;
+                var normalizedDate = DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+                    ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    : date;
                 var day = new WeatherDay
                 {
-                    Date = DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-                        ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                        : date,
+                    Date = normalizedDate,
                     TempMax = DoubleAt(maxes, i),
                     TempMin = DoubleAt(mins, i),
                     PrecipitationProbability = IntAt(precip, i)
                 };
                 var code = IntAt(codes, i);
                 day.Condition = code is null ? WeatherCondition.Unknown : WeatherCodes.FromWmo(code.Value);
+                if (string.Equals(normalizedDate, currentDate, StringComparison.Ordinal) && currentCode is int liveCode)
+                    day.CurrentCondition = WeatherCodes.FromWmo(liveCode);
                 if (day.DateValue != DateTime.MinValue) days.Add(day);
             }
             return days.Count == 0 ? null : days;
@@ -112,6 +125,10 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
 
     private static JsonElement? ArrayProperty(JsonElement parent, string name) =>
         parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Array ? value : null;
+    private static int? NumberProperty(JsonElement value, string name) =>
+        value.TryGetProperty(name, out var item) && item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var parsed)
+            ? parsed
+            : null;
 
     private static double DoubleAt(JsonElement? array, int index)
     {

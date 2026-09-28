@@ -24,6 +24,9 @@ public sealed class TranslateCache
     /// </summary>
     private readonly Dictionary<string, string> diskIndex = new(StringComparer.Ordinal);
     private readonly string? filePath;
+
+    /// <summary>串行化文件写盘段，避免并发 Flush 写出交错内容；不与内存操作共用 order 锁，免得磁盘 I/O 阻塞查缓存。</summary>
+    private readonly object fileLock = new();
     private bool dirty;
     private long version;
 
@@ -105,10 +108,16 @@ public sealed class TranslateCache
                 merged.RemoveFirst();
             }
 
-            var dir = Path.GetDirectoryName(filePath);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(filePath,
-                JsonSerializer.Serialize(merged.ToDictionary(x => x.Key, x => x.Value), JsonOptions));
+            lock (fileLock)
+            {
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                // 先写临时文件再原子改名：写一半进程被杀不会留下截断的缓存文件。
+                var tmpPath = filePath + ".tmp";
+                File.WriteAllText(tmpPath,
+                    JsonSerializer.Serialize(merged.ToDictionary(x => x.Key, x => x.Value), JsonOptions));
+                File.Move(tmpPath, filePath, overwrite: true);
+            }
             lock (order)
             {
                 // 写盘成功后索引才是准的；与文件保持一致，下次查缓存不必重读。

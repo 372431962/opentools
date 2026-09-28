@@ -23,14 +23,22 @@
                 <TextBlock Text="{x:Static loc:Loc.SectionWeather}" FontWeight="SemiBold" Margin="0,22,0,0" Foreground="#2B2925"/>
                 <CheckBox x:Name="ShowWeatherCheck" Content="{x:Static loc:Loc.WeatherCheck}" Margin="0,10,0,0"/>
                 <TextBlock Text="{x:Static loc:Loc.WeatherCityLabel}" Margin="0,12,0,6" Foreground="#817B70"/>
-                <TextBox x:Name="WeatherCityBox" MinWidth="240" HorizontalAlignment="Left"/>
+                <Grid HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="240"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <TextBox x:Name="WeatherCityBox" MinWidth="240" TextChanged="WeatherCityBox_TextChanged"/>
+                    <Button Grid.Column="1" x:Name="WeatherSearchButton" Content="{x:Static loc:Loc.WeatherSearchButton}" Margin="8,0,0,0" Padding="10,5" Click="WeatherSearchButton_Click"/>
+                </Grid>
+                <ComboBox x:Name="WeatherLocationCombo" MinWidth="340" Margin="0,8,0,0" HorizontalAlignment="Left"
+                          SelectionChanged="WeatherLocationCombo_SelectionChanged" DisplayMemberPath="DisplayName"/>
+                <TextBlock x:Name="WeatherLocationNote" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="#4F4B45"/>
+                <TextBlock Text="{x:Static loc:Loc.WeatherDistrictAccuracy}" Margin="0,4,0,0" TextWrapping="Wrap" Foreground="#817B70"/>
                 <TextBlock Text="{x:Static loc:Loc.WeatherRefreshLabel}" Margin="0,12,0,6" Foreground="#817B70"/>
                 <ComboBox x:Name="WeatherRefreshCombo" MinWidth="240" HorizontalAlignment="Left"/>
                 <Button x:Name="WeatherUpdateButton" Content="{x:Static loc:Loc.WeatherUpdateButton}" HorizontalAlignment="Left"
                         Margin="0,8,0,0" Padding="12,7" Click="WeatherUpdateButton_Click"/>
                 <TextBlock x:Name="WeatherStatus" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="#817B70"/>
                 <TextBlock Text="{x:Static loc:Loc.WeatherRangeNote}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#817B70"/>
-                <TextBlock Text="{x:Static loc:Loc.WeatherPrivacyNote}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
+                <TextBlock Text="{x:Static loc:Loc.WeatherLocationPrivacy}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
 
                 <TextBlock Text="{x:Static loc:Loc.SectionRestDays}" FontWeight="SemiBold" Margin="0,22,0,0" Foreground="#2B2925"/>
                 <TextBlock Text="{x:Static loc:Loc.RestPatternLabel}" Margin="0,10,0,6" Foreground="#817B70"/>

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Serialization;
 
+using DesktopCalendarWidget.Weather;
 namespace DesktopCalendarWidget;
 
 /// <summary>休息日排班模式。</summary>
@@ -87,6 +88,9 @@ public sealed class WidgetSettings
     /// <summary>天气查询城市。查询会把城市名发送给第三方天气接口。</summary>
     public string WeatherCity { get; set; } = DefaultWeatherCity;
 
+    /// <summary>用户明确选择的精确天气地点；null 表示旧配置/尚未选择，以 WeatherCity 做兼容查询。</summary>
+    public WeatherLocation? WeatherLocation { get; set; }
+
     /// <summary>天气刷新间隔（分钟）。</summary>
     public int WeatherRefreshMinutes { get; set; } = 60;
 
@@ -148,6 +152,7 @@ public sealed class WidgetSettings
         ShowWeather = source.ShowWeather;
         WeatherCity = source.WeatherCity;
         WeatherRefreshMinutes = source.WeatherRefreshMinutes;
+        WeatherLocation = source.WeatherLocation;
         AutoCheckUpdates = source.AutoCheckUpdates;
         LastUpdateCheckUtc = source.LastUpdateCheckUtc;
         SkippedUpdateVersion = source.SkippedUpdateVersion;

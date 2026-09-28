@@ -168,7 +168,15 @@
   <!-- 天气 -->
   <data name="SectionWeather" xml:space="preserve"><value>天气</value></data>
   <data name="WeatherCheck" xml:space="preserve"><value>在日期上显示天气和温度</value></data>
-  <data name="WeatherCityLabel" xml:space="preserve"><value>城市</value></data>
+  <data name="WeatherCityLabel" xml:space="preserve"><value>城市或区县</value></data>
+  <data name="WeatherSearchButton" xml:space="preserve"><value>搜索地区</value></data>
+  <data name="WeatherSearchPrompt" xml:space="preserve"><value>输入城市或完整区县关键词（如“广州 天河区”），搜索并选择具体地区</value></data>
+  <data name="WeatherSearching" xml:space="preserve"><value>正在搜索地区…</value></data>
+  <data name="WeatherNoLocations" xml:space="preserve"><value>没有找到地区，请检查关键词后重试。</value></data>
+  <data name="WeatherChooseLocation" xml:space="preserve"><value>请选择搜索结果以锁定区/县级位置；未选择时按城市名称查询。</value></data>
+  <data name="WeatherSelectedLocation" xml:space="preserve"><value>已选位置：{0}（{1:F4}, {2:F4}）</value></data>
+  <data name="WeatherDistrictAccuracy" xml:space="preserve"><value>天气使用所选地区坐标，通常可精确到区/县级。</value></data>
+  <data name="WeatherLocationPrivacy" xml:space="preserve"><value>搜索关键词与所选地区坐标会发送给 Open-Meteo；区县搜索无结果时会尝试 Photon；城市名称仅用于兼容备用天气源。</value></data>
   <data name="WeatherRefreshLabel" xml:space="preserve"><value>刷新间隔（分钟）</value></data>
   <data name="WeatherUpdateButton" xml:space="preserve"><value>↻ 立即更新天气</value></data>
   <data name="WeatherUpdating" xml:space="preserve"><value>正在获取天气…</value></data>
