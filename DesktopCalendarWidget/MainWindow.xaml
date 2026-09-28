@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:DesktopCalendarWidget"
         xmlns:local="clr-namespace:DesktopCalendarWidget"
-        Width="640" Height="820" MinWidth="560" MinHeight="560"
+        Width="640" Height="820" MinWidth="560" MinHeight="720"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ResizeMode="CanResize" Topmost="False" Icon="/Assets/app.ico"
         Title="{x:Static loc:Loc.AppTitle}">
@@ -21,8 +21,10 @@
                 日历和抽屉并排放在同一行：抽屉列宽为 0 时窗口不占它，展开时 MainWindow 把窗口
                 一起变宽并在右侧插入这一列，所以日历本身的位置和尺寸始终不变。
             -->
-            <Grid Grid.RowSpan="4" Background="Transparent">
-                <Grid.ColumnDefinitions><ColumnDefinition x:Name="CalendarColumn"/><ColumnDefinition x:Name="DrawerColumn" Width="0"/></Grid.ColumnDefinitions>
+            <Grid x:Name="SplitGrid" Grid.RowSpan="4" Background="Transparent">
+                <!-- 列宽由代码按「列号」分配：抽屉翻到左边时它在第 0 列，此时日历在第 1 列。
+                     宽度若绑在 CalendarColumn 这个名字上，翻边后就会补给到抽屉那一列，把日历挤扁。 -->
+                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="0"/></Grid.ColumnDefinitions>
                 <Grid x:Name="CalendarHost">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
@@ -55,7 +57,7 @@
                     </Grid>
                 </Grid>
                 <!-- 抽屉本体靠 RenderTransform 滑入，不参与列宽动画，免得每次开合都重排日历。 -->
-                <Border x:Name="Drawer" Grid.Column="1" Width="0" Background="#14FFFFFF" BorderBrush="{StaticResource Border}"
+                <Border x:Name="Drawer" Grid.Column="1" Background="#14FFFFFF" BorderBrush="{StaticResource Border}"
                         BorderThickness="{Binding DrawerBorderThickness, ElementName=Drawer}" Padding="14,16,14,16" Visibility="Collapsed">
                     <Border.RenderTransform>
                         <TranslateTransform x:Name="drawerTransform"/>

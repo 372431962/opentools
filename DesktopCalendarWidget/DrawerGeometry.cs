@@ -20,4 +20,11 @@ internal static class DrawerGeometry
     /// <summary>收起：宽度退回原值，翻过边的话位置也退回去。</summary>
     public static DrawerPlacement Close(DrawerPlacement opened, double collapsedWidth) =>
         new(opened.OnLeft ? opened.Left + (opened.Width - collapsedWidth) : opened.Left, collapsedWidth, false);
+
+    /// <summary>
+    /// 抽屉已经展开时换一天：几何一个像素都不动。
+    /// 这条规则单独拎出来是因为它反直觉——直觉写法是对新宽度再跑一次 <see cref="Open"/>，
+    /// 那样连点几天窗口就会一格一格变宽，日历也被一起撑大。
+    /// </summary>
+    public static DrawerPlacement SwitchDay(DrawerPlacement opened) => opened;
 }

@@ -542,6 +542,28 @@ internal static class Program
             Equal(true, flipped.OnLeft, "flips when hugging that monitor's right edge");
         });
 
+        Run("switching days on an open drawer never resizes the window", () =>
+        {
+            // 回归：连点日期时窗口一格一格变宽。就是因为这里又跑了一次 Open。
+            var opened = DrawerGeometry.Open(100, 640, 0, 1920, 300);
+            var afterOne = DrawerGeometry.SwitchDay(opened);
+            var afterTwo = DrawerGeometry.SwitchDay(afterOne);
+            Equal(100, afterTwo.Left, "position unchanged after two day switches");
+            Equal(940, afterTwo.Width, "width unchanged after two day switches");
+            Equal(false, afterTwo.OnLeft, "side unchanged");
+            // 对照：直觉写法（对已加宽的宽度再 Open 一次）正是要避免的行为。
+            var wrong = DrawerGeometry.Open(afterOne.Left, afterOne.Width, 0, 1920, 300);
+            Equal(1240, wrong.Width, "opening on an already-open window would grow again");
+        });
+        Run("closing after switching days returns to the original geometry", () =>
+        {
+            var opened = DrawerGeometry.Open(100, 640, 0, 1920, 300);
+            var switched = DrawerGeometry.SwitchDay(DrawerGeometry.SwitchDay(opened));
+            var closed = DrawerGeometry.Close(switched, 640);
+            Equal(100, closed.Left, "position restored");
+            Equal(640, closed.Width, "width restored");
+        });
+
         return Report();
     }
 

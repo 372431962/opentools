@@ -223,7 +223,10 @@ public partial class MainWindow : Window
         settings.Left = Left;
         settings.Top = Top;
         // 抽屉开着时存的是收起的宽度，否则下次启动挂件会凭空宽出一截。
-        settings.Width = Width - (drawerDate is null ? 0 : DrawerWidth);
+        // 抽屉开着时窗口宽度里含抽屉那一段，配置里要存收起时的宽度。
+        // 直接写 collapsedWidth 而不是「当前宽度减抽屉宽」：后者在用户开抽屉后又拖过窗口时
+        // 会对不上，日历列钉的也是 collapsedWidth，两边得是同一个数。
+        settings.Width = drawerDate is null || closingDrawer ? Width : collapsedWidth;
         settings.Height = Height;
         settings.IsTopmost = Topmost;
         settings.SchedulePanelDate = schedulePanelDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -332,7 +335,7 @@ public partial class MainWindow : Window
         translateItem.Click += (_, _) => OpenTranslate();
         // 鼠标穿透时单击收不到，菜单是抽屉唯一的入口。
         var dayItem = new MenuItem { Header = Loc.MenuShowDay };
-        dayItem.Click += (_, _) => OpenDrawerFor(schedulePanelDate);
+        dayItem.Click += (_, _) => ShowDrawerFor(schedulePanelDate);
         var visibilityItem = new MenuItem { Header = IsVisible ? Loc.MenuHideWidget : Loc.MenuShowWidget };
         visibilityItem.Click += (_, _) => ToggleWidgetVisibility();
         var updateItem = new MenuItem { Header = Loc.MenuCheckUpdate };
@@ -607,14 +610,18 @@ public partial class MainWindow : Window
         var toolTipText = BuildToolTip(date, settings.ShowHolidaysEffective ? holiday : null, weather);
         var scheduleTip = BuildSchedulesToolTip(dayItems);
         if (scheduleTip.Length > 0) toolTipText = $"{toolTipText}{Environment.NewLine}{scheduleTip}";
+        // 抽屉展开时要把当前这一天标出来：不然连点几天之后，远处的抽屉和哪一格对不上已经说不清了。
+        var isSelected = selectedDate == date.Date;
         var button = new Button
         {
             Content = stack,
             Margin = new Thickness(3),
             Padding = new Thickness(3),
-            BorderThickness = new Thickness(isToday ? 1.5 : 0.75),
-            BorderBrush = isToday ? FindBrush("WidgetAccent") : FindBrush("Border"),
-            Background = isToday ? FindBrush("TodayBackground") : FindBrush("CalendarCellBackground"),
+            BorderThickness = new Thickness(isToday || isSelected ? 1.5 : 0.75),
+            BorderBrush = isSelected ? FindBrush("WidgetAccent")
+                : isToday ? FindBrush("WidgetAccent") : FindBrush("Border"),
+            Background = isSelected ? FindBrush("TodayBackground")
+                : isToday ? FindBrush("TodayBackground") : FindBrush("CalendarCellBackground"),
             ToolTip = toolTipText
         };
 
@@ -628,7 +635,7 @@ public partial class MainWindow : Window
         button.MouseDoubleClick += (_, _) => GoToToday();
         var dayMenu = new ContextMenu();
         var showDay = new MenuItem { Header = Loc.MenuShowDay };
-        showDay.Click += (_, _) => OpenDrawerFor(date);
+        showDay.Click += (_, _) => ShowDrawerFor(date);
         var addItem = new MenuItem { Header = Loc.ScheduleAddButton };
         addItem.Click += (_, _) => AddScheduleItem(date);
         dayMenu.Items.Add(showDay);
@@ -698,11 +705,13 @@ public partial class MainWindow : Window
 
     // ---- 日程抽屉 ----
     //
-    // 几何约定：日历与抽屉并排，日历列占满窗口，抽屉列宽 0 或 DrawerWidth。
-    // 展开 = 窗口向屏幕边缘方向变宽 DrawerWidth，同时把日历列钉死在原宽度上。
-    // 钉死是关键：不钉的话列宽和窗口宽同时变，日历会在动画中途被挤扁再拉回来。
-    // 窗口比内容窄的部分会被裁掉，于是抽屉看起来就是从屏幕边缘「抽」出来的。
-    private const double DrawerAnimationMs = 200;
+    // 几何：日历与抽屉并排，日历列在抽屉展开期间被钉在原宽度上，所以日历的位置和尺寸全程不变。
+    //
+    // 动画：窗口宽度只改一次，不逐帧改。逐帧改 Window.Width 等于每帧一次 HWND resize，
+    // 分层窗口（AllowsTransparency=True）要整棵视觉树重排，在这台机器上肉眼可见地掉帧。
+    // 真正的动画交给抽屉列宽，那是纯 WPF 布局，合成器能顺畅地推完。
+    private const double DrawerAnimationMs = 130;
+    private const double DrawerFrameMs = 8;
 
     /// <summary>抽屉宽度来自配置并夹在能放下内容的区间里；太窄的抽屉不如不展开。</summary>
     private double DrawerWidth =>
@@ -711,89 +720,120 @@ public partial class MainWindow : Window
     /// <summary>右侧空间不够时抽屉改到日历左边，并把窗口往左推。</summary>
     private bool drawerOnLeft;
 
-    /// <summary>展开前的窗口宽度，动画期间用来把日历钉住。</summary>
-    private double pinnedCalendarWidth;
+    /// <summary>展开前的窗口宽度和位置，动画结束要用它们把窗口还原。</summary>
+    private double collapsedWidth;
+    private double collapsedLeft;
+    /// <summary>关闭动画进行中。此时窗口还是宽的，再点日期必须从收起宽度算起，否则会再宽一格。</summary>
+    private bool closingDrawer;
+    private DateTime? selectedDate;
+    private DrawerPlacement drawerPlacement;
 
     private void ToggleDrawerFor(DateTime date)
     {
         if (drawerDate == date.Date) CloseDrawer();
-        else OpenDrawerFor(date);
+        else ShowDrawerFor(date);
     }
 
-    private void OpenDrawerFor(DateTime date)
+    private void ShowDrawerFor(DateTime date)
     {
+        // 抽屉已经开着时只换日期，绝不重跑几何。旧逻辑每次都拿「当前宽度 + 抽屉宽」当目标，
+        // 连点几天窗口就会一格一格变宽，日历也被一起撑大。
+        if (drawerDate is not null)
+        {
+            drawerDate = date.Date;
+            selectedDate = date.Date;
+            selectedScheduleId = null;
+            drawerPlacement = DrawerGeometry.SwitchDay(drawerPlacement);
+            BindPanels();
+            RenderCalendar();
+            return;
+        }
         drawerDate = date.Date;
+        selectedDate = date.Date;
         selectedScheduleId = null;
-        pinnedCalendarWidth = Width;
-        var placement = DrawerGeometry.Open(Left, Width,
+        // 关闭动画还没跑完就又点日期的话，窗口此刻仍带着抽屉的宽度。
+        // 那时必须沿用收起的几何，否则「当前宽度 + 抽屉宽」会把窗口一次次叠宽。
+        collapsedWidth = closingDrawer ? collapsedWidth : Width;
+        collapsedLeft = closingDrawer ? collapsedLeft : Left;
+        closingDrawer = false;
+        drawerPlacement = DrawerGeometry.Open(collapsedLeft, collapsedWidth,
             SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth, DrawerWidth);
-        drawerOnLeft = placement.OnLeft;
+        drawerOnLeft = drawerPlacement.OnLeft;
 
+        // 窗口一次改到位：日历列被钉住，多出来的宽度暂时空着，接着由列宽动画把抽屉填进去。
+        Left = drawerPlacement.Left;
+        Width = drawerPlacement.Width;
         SetDrawerSide(DrawerWidth);
-        DrawerColumn.Width = new GridLength(DrawerWidth);
-        Drawer.Width = DrawerWidth;
         Drawer.Visibility = Visibility.Visible;
         DrawerPanel.SetExpanded(true);
         BindPanels();
-        AnimateDrawer(placement.Width, placement.Left);
+        AnimateDrawerColumn(0, DrawerWidth);
     }
 
     private void CloseDrawer()
     {
         if (drawerDate is null) return;
         drawerDate = null;
+        selectedDate = null;
+        closingDrawer = true;
         DrawerPanel.SetExpanded(false);
-        var placement = DrawerGeometry.Close(new DrawerPlacement(Left, Width, drawerOnLeft), pinnedCalendarWidth);
-        AnimateDrawer(placement.Width, placement.Left, () =>
+        AnimateDrawerColumn(DrawerWidth, 0, () =>
         {
-            DrawerColumn.Width = new GridLength(0);
-            Drawer.Width = 0;
             Drawer.Visibility = Visibility.Collapsed;
             SetDrawerSide(0);
+            // 列已经收干净、日历也没动过，这时把窗口缩回去不会看到中间的裁切。
+            var closed = DrawerGeometry.Close(drawerPlacement, collapsedWidth);
+            Left = closed.Left;
+            Width = collapsedWidth;
+            closingDrawer = false;
         });
         BindPanels();
+        RenderCalendar();
     }
 
-    /// <summary>把日历和抽屉摆到对应的那一列。列号是给子元素设的，所以翻边就是换列号。</summary>
+    /// <summary>日历所在的那一列：抽屉翻边时两者对调。</summary>
+    private int CalendarColumnIndex => drawerOnLeft ? 1 : 0;
+
+    /// <summary>抽屉当前占着的那一列，列宽动画动的就是它。</summary>
+    private int DrawerColumnIndex => drawerOnLeft ? 0 : 1;
+
+    /// <summary>
+    /// 把日历和抽屉摆到对应的列，并按列号分配宽度。
+    /// 宽度必须跟着列号走而不是跟着 CalendarColumn 这个名字走：翻边后抽屉落在第 0 列，
+    /// 若仍把日历宽度补给第 0 列，日历就会被挤进抽屉那 300px 里。
+    /// </summary>
     private void SetDrawerSide(double drawerWidth)
     {
-        Grid.SetColumn(Drawer, drawerOnLeft ? 0 : 1);
-        Grid.SetColumn(CalendarHost, drawerOnLeft ? 1 : 0);
+        Grid.SetColumn(Drawer, DrawerColumnIndex);
+        Grid.SetColumn(CalendarHost, CalendarColumnIndex);
         Drawer.SetValue(Border.BorderThicknessProperty,
             drawerOnLeft ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0));
-        // 抽屉占 0 时那一列整体不参与布局，日历独占窗口；抽屉有宽度时先钉住日历。
-        CalendarColumn.Width = drawerWidth <= 0
+        // 日历钉在原宽度上才不会跟着变宽；抽屉收起时日历恢复星号、独占整个窗口。
+        SplitGrid.ColumnDefinitions[CalendarColumnIndex].Width = drawerWidth <= 0
             ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(pinnedCalendarWidth);
+            : new GridLength(collapsedWidth);
+        SplitGrid.ColumnDefinitions[DrawerColumnIndex].Width = new GridLength(drawerWidth);
     }
 
     /// <summary>
-    /// 窗口变宽 + 位置微调走同一个计时器，日历全程不动。
-    /// 不用 Storyboard 是因为要同时驱动窗口两个属性、还要在结束后解钉日历列，
-    /// 一个 16ms 的计时器比两段动画加一个 Completed 回调更好读。
+    /// 列宽动画：8ms 一帧、130ms 收尾，ease-out 起步快收尾慢。
+    /// 只动 GridLength，不碰 Window 几何，所以不触发 HWND 调整大小，也没有整窗重新布局的代价。
     /// </summary>
-    private void AnimateDrawer(double toWidth, double toLeft, Action? onCompleted = null)
+    private void AnimateDrawerColumn(double from, double to, Action? onCompleted = null)
     {
         drawerAnimation?.Stop();
-        var fromWidth = Width;
-        var fromLeft = Left;
-        var deltaWidth = toWidth - fromWidth;
-        var deltaLeft = toLeft - fromLeft;
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(DrawerFrameMs) };
         var elapsed = 0.0;
         timer.Tick += (_, _) =>
         {
             elapsed += timer.Interval.TotalMilliseconds;
             var t = Math.Clamp(elapsed / DrawerAnimationMs, 0, 1);
-            // ease-out：起步快收尾慢，抽屉像是被甩出来再停住。
-            var ease = 1 - Math.Pow(1 - t, 3);
-            Width = fromWidth + deltaWidth * ease;
-            Left = fromLeft + deltaLeft * ease;
+            SplitGrid.ColumnDefinitions[DrawerColumnIndex].Width =
+                new GridLength(from + (to - from) * (1 - Math.Pow(1 - t, 3)));
             if (t < 1) return;
             timer.Stop();
             drawerAnimation = null;
-            Width = toWidth;
-            Left = toLeft;
+            SplitGrid.ColumnDefinitions[DrawerColumnIndex].Width = new GridLength(to);
             onCompleted?.Invoke();
         };
         drawerAnimation = timer;
@@ -806,8 +846,8 @@ public partial class MainWindow : Window
     {
         var date = drawerDate ?? schedulePanelDate;
         var items = SchedulesForDate(date);
-        // 抽屉展开时把底部摘要收掉：同一天的内容同时出现在两处只会让人以为是两天。
-        BottomPanelHost.Visibility = settings.ShowSchedules && drawerDate is null ? Visibility.Visible : Visibility.Collapsed;
+        // 底部摘要和抽屉展示同一天：抽屉是右侧的完整视图，底部那条是随手一瞥的入口，两者并存。
+        BottomPanelHost.Visibility = settings.ShowSchedules ? Visibility.Visible : Visibility.Collapsed;
         BottomPanel.SetExpanded(false);
         BottomPanel.Bind(date, items, selectedScheduleId);
         if (drawerDate is not null) DrawerPanel.Bind(date, items, selectedScheduleId);
@@ -864,7 +904,7 @@ public partial class MainWindow : Window
         translateItem.Click += (_, _) => OpenTranslate();
         // 鼠标穿透时单击收不到，菜单是抽屉唯一的入口。
         var dayItem = new MenuItem { Header = Loc.MenuShowDay };
-        dayItem.Click += (_, _) => OpenDrawerFor(schedulePanelDate);
+        dayItem.Click += (_, _) => ShowDrawerFor(schedulePanelDate);
         var lockItem = new MenuItem { Header = settings.IsLocked ? Loc.MenuUnlock : Loc.MenuLock, IsCheckable = true, IsChecked = settings.IsLocked };
         lockItem.Click += (_, _) => { settings.IsLocked = lockItem.IsChecked; settingsService.Save(settings); ApplyLock(); };
         var clickItem = new MenuItem { Header = Loc.MenuClickThrough, IsCheckable = true, IsChecked = settings.IsClickThrough };
@@ -962,20 +1002,31 @@ public partial class MainWindow : Window
         StartWeather(forceInitial: dialog.WeatherChanged);
         StartCourseReminders();
         // 抽屉开着时宽度跟着新配置走，锁定位也允许自由缩放。
-        if (drawerDate is not null) ApplyDrawerWidth(drawerDate.Value);
+        if (drawerDate is not null) ApplyDrawerWidth();
         RenderCalendar();
     }
 
-    /// <summary>只改抽屉列宽，不重播开合动画：设置里改宽度时用它。</summary>
-    private void ApplyDrawerWidth(DateTime date)
+    /// <summary>设置里改了抽屉宽度：只重算列宽，不重播开合动画，也不碰窗口几何。</summary>
+    private void ApplyDrawerWidth()
     {
-        var delta = DrawerWidth - DrawerColumn.Width.Value;
-        pinnedCalendarWidth = Width - DrawerColumn.Width.Value;
-        SetDrawerSide(DrawerWidth);
-        DrawerColumn.Width = new GridLength(DrawerWidth);
-        Drawer.Width = DrawerWidth;
-        Width += delta;
-        drawerDate = date.Date;
+        if (drawerDate is not null)
+        {
+            drawerAnimation?.Stop();
+            drawerAnimation = null;
+            SetDrawerSide(DrawerWidth);
+            Width = collapsedWidth + DrawerWidth;
+            drawerPlacement = drawerPlacement with { Width = Width };
+        }
+        else
+        {
+            drawerPlacement = DrawerGeometry.Open(Left, Width,
+                SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth, DrawerWidth);
+            drawerOnLeft = drawerPlacement.OnLeft;
+            SetDrawerSide(0);
+            Left = drawerPlacement.Left;
+            Width = drawerPlacement.Width;
+            Drawer.Visibility = Visibility.Collapsed;
+        }
         BindPanels();
     }
 
