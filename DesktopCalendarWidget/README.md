@@ -86,6 +86,28 @@
 - **范围限制**：免费接口只提供未来 16 天预报和最近 28 天实况，更远或更早的日期不显示天气，这是接口能力所限。
 - **隐私**：搜索关键词和所选地区坐标会发送给 Open-Meteo；区县搜索无结果时会尝试 Photon；旧配置或未选择地区时，城市名称会发送给备用天气接口。
 
+## 课程表
+
+设置中的「课程表」支持按学期周次显示重复课程：
+
+- **启用条件**：勾选「在日历上显示课程」，填写学期开始日期（第 1 周所在周，可填该周任意日期，程序按周一归一）和 1–52 的学期周数；未配置学期日期时不显示课程。
+- **可视化编辑**：在设置中点「管理课程」，按星期选中课程后可新增、修改、删除，确认后回到设置页；点击「保存课程数据」或保存设置才写入文件，取消编辑窗口不修改已有课程。逐行 JSON 仍可作为高级编辑入口。课程没改动时保存设置不会重写 `courses.json`。
+- **课程数据**：每行一个 JSON 对象，字段包括 `Name`、`DayOfWeek`（1=周一…7=周日）、`StartPeriod`/`EndPeriod`、`WeekType`（`all`/`odd`/`even`）、`StartWeek`/`EndWeek`，以及可选的 `Location`、`Teacher`、`Color`。例如：
+
+  ```json
+  {"Name":"高等数学","DayOfWeek":1,"StartPeriod":1,"EndPeriod":2,"Location":"A101","WeekType":"all","StartWeek":1,"EndWeek":16}
+  ```
+
+- **显示**：日期格最多显示两门课程和 `+N`；悬停提示列出当天全部课程、节次、教室和教师；标题显示当前学期的周次（看当月时按今天算，翻看其它月份时按该月 1 号算）；今日摘要和托盘提示显示当天课程数。
+- **单双周**：`odd` 只在单周显示，`even` 只在双周显示，周次从学期第 1 周开始计算，起止周包含边界。
+- **节次时间**：可选填写 `1=08:00-08:45;2=08:55-09:40`，用于悬停提示拼接课程时间；无效片段会忽略。
+- **存储与限制**：课程数据保存在 `%LocalAppData%\\DesktopCalendarWidget\\courses.json`。程序只按自然周和单双周推算，不自动处理停课、调课或节假日，需由用户调整课程数据表达。手改坏某条记录时，启动会提示丢弃了几条，并说明再次保存就会真的删掉它们。
+- **课程提醒**：在设置中勾选「上课前提醒」，填 0–120 分钟（默认关闭）；需要为对应节次配置有效的 `HH:mm` 开始时间。程序运行时通过托盘通知，提醒窗口只持续到开课前，已通知记录跨重启保存在 `course-reminders.json`；不在程序关闭时后台提醒。没有任何课程时不启动提醒轮询定时器。
+
+## 日程
+
+通过挂件或托盘菜单「管理日程」，或者日期格右键「编辑当日日程」，可以新增、修改、删除指定日期的全天或定时事件。定时事件的开始、结束使用本地时间 `HH:mm`，结束时间必须晚于开始时间；地点与备注可选。编辑窗口取消不写盘，保存后写入 `events.json` 并立即刷新日历。日期格显示日程数量，悬停可查看标题、时间、地点和备注；设置中的「在日历上显示日程」只控制显示，不会删除数据。无效记录与课程一样在启动时提示丢弃数量。
+
 ## 休息日与隔周单休
 
 在设置的「休息日」区域选择模式：
@@ -162,6 +184,9 @@ https://timor.tech/api/holiday/year/{0}
 | --- | --- |
 | `settings.json` | 窗口位置与尺寸、置顶与锁定、休息日配置、翻译与天气配置、更新地址、自动更新开关与上次检查时间等 |
 | `holidays.json` | 节假日与调休记录，文件格式为 JSON 数组 |
+| `courses.json` | 每周课程表 |
+| `events.json` | 指定日期的全天和定时日程 |
+| `course-reminders.json` | 近期已提醒课程，避免重启后重复通知 |
 | `weather.json` | 天气缓存：城市、坐标、拉取时间与逐日天气 |
 | `translate-cache.json` | 最近译文缓存，重复内容不重复联网 |
 | `updates\` | 更新安装包下载目录，每次下载前清空 |
@@ -235,9 +260,11 @@ msiexec /i "artifacts\DesktopCalendarWidget-1.5.0-win-x64.msi"
 ```powershell
 dotnet run --project tests/DesktopCalendarWidget.ScheduleTests -c Release
 dotnet run --project tests/DesktopCalendarWidget.TranslateTests -c Release
+dotnet run --project tests/DesktopCalendarWidget.WeatherSceneTests -c Release
+dotnet run --project tests/DesktopCalendarWidget.EditorTests -c Release
 ```
 
-排班测试覆盖休息日推算；翻译、天气与更新测试覆盖语种识别、离线词典切词、各接口的 URL 构造与响应解析、缓存淘汰、降级链、天气编码映射和 Release 解析，全部离线运行，不依赖网络。
+排班测试覆盖休息日推算，以及课程表学期周次与单双周、日程排序、提醒窗口与去重、课程/日程/提醒记录的存取往返；翻译与天气测试覆盖解析和缓存；天气场景与编辑窗口测试在 Windows WPF 下运行。测试无需联网，编辑窗口测试用不显示在任务栏的临时窗口验证保存和取消。
 
 ### GitHub Release 自动发布
 
