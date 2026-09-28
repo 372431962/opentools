@@ -94,6 +94,32 @@ public sealed class WidgetSettings
     /// <summary>天气刷新间隔（分钟）。</summary>
     public int WeatherRefreshMinutes { get; set; } = 60;
 
+    // ---- 日程 ----
+    /// <summary>是否在日历上显示日程。没有日程时不产生任何渲染。</summary>
+    public bool ShowSchedules { get; set; } = true;
+
+    /// <summary>
+    /// 日程面板默认展示的日期。null 表示跟随今天；改成固定日期后挂件每次启动都停在那一天。
+    /// 抽屉里选中别的日期不会改这里。
+    /// </summary>
+    public string? SchedulePanelDate { get; set; }
+
+    /// <summary>日程面板宽度（像素），抽屉展开时窗口变宽这么多。</summary>
+    public double SchedulePanelWidth { get; set; } = 300;
+
+    /// <summary>学期开始日期（第 1 周所在周）；推算时按所在周周一归一，与大小周周界一致。null 表示未配置。</summary>
+    public DateTime? SemesterStart { get; set; }
+
+    /// <summary>学期总周数，超出后不显示课程。</summary>
+    public int SemesterWeeks { get; set; } = 20;
+
+    /// <summary>节次时刻表，形如 "1=08:00-08:45;2=08:55-09:40"。仅用于把旧课程迁成带时刻的日程。</summary>
+    public string PeriodTimes { get; set; } = "";
+
+    /// <summary>仅在程序运行且课程有确定开始时刻时提醒。</summary>
+    public bool CourseRemindersEnabled { get; set; }
+    public int CourseReminderMinutes { get; set; } = 10;
+
     // ---- 自动更新 ----
     /// <summary>是否自动检查新版本：启动后查一次，之后每 12 小时查一次。</summary>
     public bool AutoCheckUpdates { get; set; } = true;
@@ -153,6 +179,14 @@ public sealed class WidgetSettings
         WeatherCity = source.WeatherCity;
         WeatherRefreshMinutes = source.WeatherRefreshMinutes;
         WeatherLocation = source.WeatherLocation;
+        ShowSchedules = source.ShowSchedules;
+        SchedulePanelDate = source.SchedulePanelDate;
+        SchedulePanelWidth = source.SchedulePanelWidth;
+        SemesterStart = source.SemesterStart;
+        SemesterWeeks = source.SemesterWeeks;
+        PeriodTimes = source.PeriodTimes;
+        CourseRemindersEnabled = source.CourseRemindersEnabled;
+        CourseReminderMinutes = source.CourseReminderMinutes;
         AutoCheckUpdates = source.AutoCheckUpdates;
         LastUpdateCheckUtc = source.LastUpdateCheckUtc;
         SkippedUpdateVersion = source.SkippedUpdateVersion;

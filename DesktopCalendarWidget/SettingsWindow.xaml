@@ -40,6 +40,28 @@
                 <TextBlock Text="{x:Static loc:Loc.WeatherRangeNote}" TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#817B70"/>
                 <TextBlock Text="{x:Static loc:Loc.WeatherLocationPrivacy}" TextWrapping="Wrap" Margin="0,6,0,0" Foreground="#817B70"/>
 
+                <TextBlock Text="{x:Static loc:Loc.SectionSchedules}" FontWeight="SemiBold" Margin="0,22,0,0" Foreground="#2B2925"/>
+                <CheckBox x:Name="ShowSchedulesCheck" Content="{x:Static loc:Loc.ShowSchedulesCheck}" Margin="0,10,0,0"/>
+                <TextBlock Text="{x:Static loc:Loc.CoursesSemesterLabel}" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#817B70"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox x:Name="SemesterStartBox" Width="150"/>
+                    <TextBlock Text="{x:Static loc:Loc.CoursesWeeksLabel}" VerticalAlignment="Center" Margin="12,0,6,0" Foreground="#817B70"/>
+                    <TextBox x:Name="SemesterWeeksBox" Width="55"/>
+                </StackPanel>
+                <CheckBox x:Name="RemindCoursesCheck" Content="{x:Static loc:Loc.RemindCoursesCheck}" Margin="0,12,0,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <TextBlock Text="{x:Static loc:Loc.ReminderMinutesLabel}" VerticalAlignment="Center" Foreground="#817B70"/>
+                    <TextBox x:Name="ReminderMinutesBox" Width="55" Margin="8,0,0,0"/>
+                </StackPanel>
+                <Expander x:Name="ScheduleJsonExpander" Header="{x:Static loc:Loc.AdvancedScheduleJson}" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{x:Static loc:Loc.ScheduleDataHint}" Margin="0,8,0,6" TextWrapping="Wrap" Foreground="#817B70"/>
+                        <TextBox x:Name="ScheduleJsonBox" Height="135" FontFamily="Consolas" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/>
+                        <Button Content="{x:Static loc:Loc.SaveSchedulesButton}" HorizontalAlignment="Left" Margin="0,8,0,0" Padding="12,7" Click="SaveSchedulesButton_Click"/>
+                    </StackPanel>
+                </Expander>
+                <TextBlock x:Name="SchedulesStatus" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="#817B70"/>
+
                 <TextBlock Text="{x:Static loc:Loc.SectionRestDays}" FontWeight="SemiBold" Margin="0,22,0,0" Foreground="#2B2925"/>
                 <TextBlock Text="{x:Static loc:Loc.RestPatternLabel}" Margin="0,10,0,6" Foreground="#817B70"/>
                 <ComboBox x:Name="RestPatternCombo" MinWidth="240" HorizontalAlignment="Left" SelectionChanged="RestPatternCombo_SelectionChanged">

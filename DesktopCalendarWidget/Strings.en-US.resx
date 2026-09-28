@@ -227,4 +227,70 @@ The existing local data is still in use.</value></data>
   <data name="WeatherStaleNote" xml:space="preserve"><value>Weather is from the last successful update</value></data>
   <data name="HotkeysUnavailableFormat" xml:space="preserve"><value>These shortcuts are taken by another program and will not work: {0}</value></data>
   <data name="UpdateVerifyFailed" xml:space="preserve"><value>The installer failed verification and was discarded</value></data>
+  <data name="CoursesSemesterLabel" xml:space="preserve"><value>Semester start (any date in the week that starts the semester; it is normalized to that week's Monday. yyyy-MM-dd; leave empty to disable):</value></data>
+  <data name="CoursesWeeksLabel" xml:space="preserve"><value>Semester weeks</value></data>
+  <data name="CoursesSemesterInvalid" xml:space="preserve"><value>Semester start must be yyyy-MM-dd, or leave it empty.</value></data>
+  <data name="CourseWeekFormat" xml:space="preserve"><value>Week {0}</value></data>
+  <data name="CoursesWeeksInvalid" xml:space="preserve"><value>Semester weeks must be between 1 and 52.</value></data>
+  <data name="RemindCoursesCheck" xml:space="preserve"><value>Remind me before class</value></data>
+  <data name="ReminderMinutesLabel" xml:space="preserve"><value>Minutes before (0–120)</value></data>
+  <data name="ReminderMinutesInvalid" xml:space="preserve"><value>Reminder lead time must be 0 to 120 minutes.</value></data>
+  <data name="EventsDayFormat" xml:space="preserve"><value>{0} event(s)</value></data>
+  <data name="EventAllDay" xml:space="preserve"><value>All day</value></data>
+  <data name="ReminderBodyFormat" xml:space="preserve"><value>{0} starts at {1}{2}</value></data>
+  <data name="DataFileHint" xml:space="preserve"><value>Saving course or event data again will delete them. You can edit the files directly from the data folder in settings.</value></data>
+  <data name="NameSeparator" xml:space="preserve"><value>, </value></data>
+  <data name="NameSeparatorCompact" xml:space="preserve"><value>·</value></data>
+
+  <data name="SectionSchedules" xml:space="preserve"><value>Schedules</value></data>
+  <data name="ShowSchedulesCheck" xml:space="preserve"><value>Show schedules on the calendar</value></data>
+  <data name="AdvancedScheduleJson" xml:space="preserve"><value>Advanced: JSON editor</value></data>
+  <data name="ScheduleDataHint" xml:space="preserve"><value>One JSON object per line. Kind: Course, Meeting, Travel, Reminder, Birthday, Exam or Other. One-off schedules set Date; courses set Recurrence (DayOfWeek 1=Monday…7=Sunday, StartWeek/EndWeek, WeekType all/odd/even). Leave both StartTime and EndTime empty for an all-day schedule (for a course it means time to be decided).</value></data>
+  <data name="SaveSchedulesButton" xml:space="preserve"><value>Save schedule data</value></data>
+  <data name="SchedulesSavedCount" xml:space="preserve"><value>Saved {0} schedules.</value></data>
+  <data name="ScheduleSaveFailed" xml:space="preserve"><value>Could not save schedule data. Check access to the data folder.</value></data>
+  <data name="ScheduleDataInvalid" xml:space="preserve"><value>Invalid schedule fields. Check the kind, date and time combination.</value></data>
+  <data name="ScheduleDataInvalidFormat" xml:space="preserve"><value>Invalid schedule JSON: {0}</value></data>
+  <data name="ScheduleTimePendingFormat" xml:space="preserve"><value>{0} courses have no definite start time and are marked as time to be decided.</value></data>
+  <data name="SchedulesDroppedFormat" xml:space="preserve"><value>{0} schedule records were invalid and have been ignored.</value></data>
+  <data name="MenuShowDay" xml:space="preserve"><value>Show day schedule</value></data>
+  <data name="SchedulePanelHeading" xml:space="preserve"><value>Schedule for {0}</value></data>
+  <data name="ScheduleEmptyText" xml:space="preserve"><value>Nothing scheduled this day. Use the + button to add one.</value></data>
+  <data name="ScheduleAddButton" xml:space="preserve"><value>Add schedule</value></data>
+  <data name="ScheduleCloseButton" xml:space="preserve"><value>Collapse panel</value></data>
+  <data name="ScheduleTimePending" xml:space="preserve"><value>Time TBD</value></data>
+  <data name="ScheduleNewTitle" xml:space="preserve"><value>New schedule</value></data>
+  <data name="ScheduleEditTitle" xml:space="preserve"><value>Edit schedule</value></data>
+  <data name="ScheduleKindLabel" xml:space="preserve"><value>Type</value></data>
+  <data name="ScheduleTitleLabel" xml:space="preserve"><value>Title</value></data>
+  <data name="ScheduleDateHeading" xml:space="preserve"><value>Date and time</value></data>
+  <data name="ScheduleDayLabel" xml:space="preserve"><value>Day of week</value></data>
+  <data name="ScheduleStartWeekLabel" xml:space="preserve"><value>First week</value></data>
+  <data name="ScheduleEndWeekLabel" xml:space="preserve"><value>Last week (0 = no limit)</value></data>
+  <data name="ScheduleWeekTypeLabel" xml:space="preserve"><value>Weeks</value></data>
+  <data name="ScheduleLocationLabel" xml:space="preserve"><value>Location</value></data>
+  <data name="ScheduleNotesLabel" xml:space="preserve"><value>Notes</value></data>
+  <data name="ScheduleTitleRequired" xml:space="preserve"><value>Enter a title.</value></data>
+  <data name="ScheduleDateRequired" xml:space="preserve"><value>Pick a date.</value></data>
+  <data name="ScheduleTimeFormatHint" xml:space="preserve"><value>Use HH:mm for both times.</value></data>
+  <data name="ScheduleDiscardPrompt" xml:space="preserve"><value>Discard unsaved changes?</value></data>
+  <data name="ScheduleDeleteConfirmFormat" xml:space="preserve"><value>Delete schedule "{0}"?</value></data>
+  <data name="KindCourse" xml:space="preserve"><value>Class</value></data>
+  <data name="KindMeeting" xml:space="preserve"><value>Meeting</value></data>
+  <data name="KindTravel" xml:space="preserve"><value>Travel</value></data>
+  <data name="KindReminder" xml:space="preserve"><value>Reminder</value></data>
+  <data name="KindBirthday" xml:space="preserve"><value>Birthday</value></data>
+  <data name="KindExam" xml:space="preserve"><value>Exam</value></data>
+  <data name="KindOther" xml:space="preserve"><value>Other</value></data>
+
+  <data name="EventStartLabel" xml:space="preserve"><value>Start (HH:mm)</value></data>
+  <data name="EventEndLabel" xml:space="preserve"><value>End (HH:mm)</value></data>
+  <data name="DeleteButton" xml:space="preserve"><value>Delete</value></data>
+  <data name="CourseDayRequired" xml:space="preserve"><value>Select a day.</value></data>
+  <data name="CourseWeekRangeInvalid" xml:space="preserve"><value>Last week must be at least the first week (0 = no limit).</value></data>
+  <data name="CourseNumberRangeFormat" xml:space="preserve"><value>{0} must be an integer from {1} to {2}.</value></data>
+  <data name="EventTimeOrderInvalid" xml:space="preserve"><value>End time must be after start time.</value></data>
+
+  <data name="CourseTodayFormat" xml:space="preserve"><value>{0} item(s) today: {1}</value></data>
+  <data name="SectionCourses" xml:space="preserve"><value>Course schedule</value></data>
 </root>

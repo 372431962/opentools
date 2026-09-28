@@ -24,6 +24,8 @@ public sealed class TrayIcon : IDisposable
     private const int NIF_MESSAGE = 0x00000001;
     private const int NIF_ICON = 0x00000002;
     private const int NIF_TIP = 0x00000004;
+    private const int NIF_INFO = 0x00000010;
+    private const int NIIF_INFO = 0x00000001;
     private const int WM_LBUTTONDBLCLK = 0x0203;
     private const int WM_RBUTTONUP = 0x0205;
     private const int WM_CONTEXTMENU = 0x007B;
@@ -114,6 +116,20 @@ public sealed class TrayIcon : IDisposable
         registered = Send(text, NIM_ADD);
         return registered;
     }
+
+    /// <summary>Use the existing tray icon for a notification; false means no notification was accepted.</summary>
+    public bool ShowBalloon(string title, string message)
+    {
+        if (!registered && !SetToolTip(toolTip)) return false;
+        var data = BuildData(toolTip);
+        data.uFlags |= NIF_INFO;
+        data.szInfoTitle = title.Length > 63 ? title[..63] : title;
+        data.szInfo = message.Length > 255 ? message[..255] : message;
+        data.dwInfoFlags = NIIF_INFO;
+        data.uVersionOrTimeout = 5000;
+        return Shell_NotifyIcon(NIM_MODIFY, ref data);
+    }
+
 
     public void Dispose()
     {

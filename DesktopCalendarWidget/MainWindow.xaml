@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:DesktopCalendarWidget"
-        Width="640" Height="820" MinWidth="560" MinHeight="720"
+        xmlns:local="clr-namespace:DesktopCalendarWidget"
+        Width="640" Height="820" MinWidth="560" MinHeight="560"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ResizeMode="CanResize" Topmost="False" Icon="/Assets/app.ico"
         Title="{x:Static loc:Loc.AppTitle}">
@@ -16,29 +17,52 @@
                 <Canvas x:Name="WeatherParticles" Opacity="0.84"/>
                 <Rectangle x:Name="WeatherFlash" Stretch="Fill" Fill="White" Opacity="0"/>
             </Grid>
-            <Grid Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown">
-                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                <StackPanel>
-                    <TextBlock x:Name="MonthTitle" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource Ink}" Effect="{StaticResource TextShadow}"/>
-                    <TextBlock x:Name="TodaySummary" Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                    <Button x:Name="TodayButton" Content="{x:Static loc:Loc.TodayButton}" Click="TodayButton_Click" Margin="0,2,2,0" Padding="10,6" Effect="{StaticResource TextShadow}"/>
-                    <Button Content="⋯" FontSize="22" Width="40" Height="36" Padding="0" Click="MenuButton_Click" ToolTip="{x:Static loc:Loc.MenuButtonTip}" Effect="{StaticResource TextShadow}"/>
-                </StackPanel>
+            <!--
+                日历和抽屉并排放在同一行：抽屉列宽为 0 时窗口不占它，展开时 MainWindow 把窗口
+                一起变宽并在右侧插入这一列，所以日历本身的位置和尺寸始终不变。
+            -->
+            <Grid Grid.RowSpan="4" Background="Transparent">
+                <Grid.ColumnDefinitions><ColumnDefinition x:Name="CalendarColumn"/><ColumnDefinition x:Name="DrawerColumn" Width="0"/></Grid.ColumnDefinitions>
+                <Grid x:Name="CalendarHost">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock x:Name="MonthTitle" FontSize="28" FontWeight="SemiBold" Foreground="{StaticResource Ink}" Effect="{StaticResource TextShadow}"/>
+                            <TextBlock x:Name="TodaySummary" Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button x:Name="TodayButton" Content="{x:Static loc:Loc.TodayButton}" Click="TodayButton_Click" Margin="0,2,2,0" Padding="10,6" Effect="{StaticResource TextShadow}"/>
+                            <Button Content="⋯" FontSize="22" Width="40" Height="36" Padding="0" Click="MenuButton_Click" ToolTip="{x:Static loc:Loc.MenuButtonTip}" Effect="{StaticResource TextShadow}"/>
+                        </StackPanel>
+                    </Grid>
+                    <Grid Grid.Row="1" Margin="0,16,0,8" Background="Transparent">
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
+                        <Button Content="‹" FontSize="26" Width="44" Height="36" Click="PreviousButton_Click" ToolTip="{x:Static loc:Loc.PreviousMonthTip}" Effect="{StaticResource TextShadow}"/>
+                        <TextBlock x:Name="MonthCaption" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
+                        <Button Grid.Column="2" Content="›" FontSize="26" Width="44" Height="36" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="{x:Static loc:Loc.NextMonthTip}" Effect="{StaticResource TextShadow}"/>
+                    </Grid>
+                    <Grid x:Name="CalendarGrid" Grid.Row="2"/>
+                    <!-- 抽屉收起时唯一可见的日程入口：日历下方一条可滚动摘要。 -->
+                    <Grid x:Name="BottomPanelHost" Grid.Row="3" Margin="0,10,0,0">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                        <Border Height="1" Background="{StaticResource Border}"/>
+                        <local:DayAgendaPanel x:Name="BottomPanel" Grid.Row="1" Margin="0,8,0,0" MaxHeight="96"/>
+                        <TextBlock x:Name="Legend" Grid.Row="2" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
+                    </Grid>
+                </Grid>
+                <!-- 抽屉本体靠 RenderTransform 滑入，不参与列宽动画，免得每次开合都重排日历。 -->
+                <Border x:Name="Drawer" Grid.Column="1" Width="0" Background="#14FFFFFF" BorderBrush="{StaticResource Border}"
+                        BorderThickness="{Binding DrawerBorderThickness, ElementName=Drawer}" Padding="14,16,14,16" Visibility="Collapsed">
+                    <Border.RenderTransform>
+                        <TranslateTransform x:Name="drawerTransform"/>
+                    </Border.RenderTransform>
+                    <local:DayAgendaPanel x:Name="DrawerPanel"/>
+                </Border>
             </Grid>
-            <Grid Grid.Row="1" Margin="0,16,0,8" Background="Transparent">
-                <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                <Button Content="‹" FontSize="26" Width="44" Height="36" Click="PreviousButton_Click" ToolTip="{x:Static loc:Loc.PreviousMonthTip}" Effect="{StaticResource TextShadow}"/>
-                <TextBlock x:Name="MonthCaption" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
-                <Button Grid.Column="2" Content="›" FontSize="26" Width="44" Height="36" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="{x:Static loc:Loc.NextMonthTip}" Effect="{StaticResource TextShadow}"/>
-            </Grid>
-            <Grid x:Name="CalendarGrid" Grid.Row="2"/>
-            <StackPanel Grid.Row="3" Margin="0,12,0,0">
-                <Border Height="1" Background="{StaticResource Border}"/>
-                <TextBlock x:Name="Legend" Margin="0,10,0,0" FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"
-                           Text="{x:Static loc:Loc.LegendNoRest}"/>
-            </StackPanel>
         </Grid>
     </Border>
 </Window>

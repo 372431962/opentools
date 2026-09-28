@@ -1,0 +1,79 @@
+<Window x:Class="DesktopCalendarWidget.ScheduleEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="520" Height="620" MinWidth="440" MinHeight="480"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="#FFFCF8">
+    <Grid Margin="22">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="Heading" FontSize="21" FontWeight="SemiBold" Foreground="#2B2925"/>
+
+        <ScrollViewer Grid.Row="1" Margin="0,16,0,12" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Label x:Name="KindLabel" Padding="0" Foreground="#817B70"/>
+                <ComboBox x:Name="KindCombo" Margin="0,4,0,0" SelectionChanged="KindCombo_SelectionChanged"/>
+
+                <Label x:Name="TitleLabel" Padding="0" Margin="0,12,0,4" Foreground="#817B70"/>
+                <TextBox x:Name="TitleBox" MaxLength="120" TextChanged="MarkDirty"/>
+
+                <TextBlock x:Name="DateHeading" Margin="0,12,0,4" Foreground="#817B70" FontWeight="SemiBold"/>
+                <Grid>
+                    <StackPanel x:Name="OneOffFields">
+                        <StackPanel Orientation="Horizontal">
+                            <DatePicker x:Name="DatePicker" Width="150" Margin="0,0,0,0"/>
+                            <CheckBox x:Name="AllDayCheck" Margin="14,0,0,0" VerticalAlignment="Center" Checked="AllDayCheck_Changed" Unchecked="AllDayCheck_Changed"/>
+                        </StackPanel>
+                        <Grid x:Name="TimeRow" Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock x:Name="StartLabelText" Foreground="#817B70"/>
+                                <TextBox x:Name="StartBox" Margin="0,4,0,0" MaxLength="5" TextChanged="MarkDirty"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="EndLabelText" Foreground="#817B70"/>
+                                <TextBox x:Name="EndBox" Margin="0,4,0,0" MaxLength="5" TextChanged="MarkDirty"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel x:Name="RecurringFields" Visibility="Collapsed">
+                        <Label x:Name="DayLabel" Padding="0" Foreground="#817B70"/>
+                        <ComboBox x:Name="DayCombo" Margin="0,4,0,0"/>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock x:Name="StartWeekLabelText" Foreground="#817B70"/>
+                                <TextBox x:Name="StartWeekBox" Margin="0,4,0,0" MaxLength="3" TextChanged="MarkDirty"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock x:Name="EndWeekLabelText" Foreground="#817B70"/>
+                                <TextBox x:Name="EndWeekBox" Margin="0,4,0,0" MaxLength="3" TextChanged="MarkDirty"/>
+                            </StackPanel>
+                        </Grid>
+                        <Label x:Name="WeekTypeLabel" Padding="0" Margin="0,8,0,4" Foreground="#817B70"/>
+                        <ComboBox x:Name="WeekTypeCombo" Margin="0,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+
+                <Label x:Name="LocationLabel" Padding="0" Margin="0,12,0,4" Foreground="#817B70"/>
+                <TextBox x:Name="LocationBox" MaxLength="120" TextChanged="MarkDirty"/>
+
+                <Label x:Name="NotesLabel" Padding="0" Margin="0,12,0,4" Foreground="#817B70"/>
+                <TextBox x:Name="NotesBox" Height="80" AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" MaxLength="2000" TextChanged="MarkDirty"/>
+
+                <TextBlock x:Name="ErrorText" Foreground="#B44837" TextWrapping="Wrap" Margin="0,10,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2">
+            <Button x:Name="DeleteButton" HorizontalAlignment="Left" Padding="12,7" Click="DeleteButton_Click"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton" Padding="14,8" IsCancel="True" Click="CancelButton_Click"/>
+                <Button x:Name="SaveButton" Padding="14,8" Margin="8,0,0,0" IsDefault="True"
+                        Background="#B44837" Foreground="White" Click="SaveButton_Click"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

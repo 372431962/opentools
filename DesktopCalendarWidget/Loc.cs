@@ -231,6 +231,77 @@ internal static class Loc
     public static string UpdateInstallFailedFormat => Get(nameof(UpdateInstallFailedFormat));
     public static string UpdateOpenFailedFormat => Get(nameof(UpdateOpenFailedFormat));
 
+    // 日程
+    public static string AdvancedScheduleJson => Get(nameof(AdvancedScheduleJson));
+    public static string CourseTodayFormat => Get(nameof(CourseTodayFormat));
+    public static string CourseWeekFormat => Get(nameof(CourseWeekFormat));
+    public static string CoursesSemesterInvalid => Get(nameof(CoursesSemesterInvalid));
+    public static string CoursesSemesterLabel => Get(nameof(CoursesSemesterLabel));
+    public static string CoursesWeeksInvalid => Get(nameof(CoursesWeeksInvalid));
+    public static string CoursesWeeksLabel => Get(nameof(CoursesWeeksLabel));
+    public static string DataFileHint => Get(nameof(DataFileHint));
+    public static string EventAllDay => Get(nameof(EventAllDay));
+    public static string EventsDayFormat => Get(nameof(EventsDayFormat));
+    public static string KindBirthday => Get(nameof(KindBirthday));
+    public static string KindCourse => Get(nameof(KindCourse));
+    public static string KindExam => Get(nameof(KindExam));
+    public static string KindMeeting => Get(nameof(KindMeeting));
+    public static string KindOther => Get(nameof(KindOther));
+    public static string KindReminder => Get(nameof(KindReminder));
+    public static string KindTravel => Get(nameof(KindTravel));
+    public static string MenuShowDay => Get(nameof(MenuShowDay));
+    public static string NameSeparator => Get(nameof(NameSeparator));
+    public static string NameSeparatorCompact => Get(nameof(NameSeparatorCompact));
+    public static string RemindCoursesCheck => Get(nameof(RemindCoursesCheck));
+    public static string ReminderBodyFormat => Get(nameof(ReminderBodyFormat));
+    public static string ReminderMinutesInvalid => Get(nameof(ReminderMinutesInvalid));
+    public static string ReminderMinutesLabel => Get(nameof(ReminderMinutesLabel));
+    public static string SaveSchedulesButton => Get(nameof(SaveSchedulesButton));
+    public static string ScheduleAddButton => Get(nameof(ScheduleAddButton));
+    public static string ScheduleCloseButton => Get(nameof(ScheduleCloseButton));
+    public static string ScheduleDataHint => Get(nameof(ScheduleDataHint));
+    public static string ScheduleDataInvalid => Get(nameof(ScheduleDataInvalid));
+    public static string ScheduleDataInvalidFormat => Get(nameof(ScheduleDataInvalidFormat));
+    public static string ScheduleDateHeading => Get(nameof(ScheduleDateHeading));
+    public static string ScheduleDateRequired => Get(nameof(ScheduleDateRequired));
+    public static string ScheduleDayLabel => Get(nameof(ScheduleDayLabel));
+    public static string ScheduleDeleteConfirmFormat => Get(nameof(ScheduleDeleteConfirmFormat));
+    public static string ScheduleDiscardPrompt => Get(nameof(ScheduleDiscardPrompt));
+    public static string ScheduleEditTitle => Get(nameof(ScheduleEditTitle));
+    public static string ScheduleEmptyText => Get(nameof(ScheduleEmptyText));
+    public static string ScheduleEndWeekLabel => Get(nameof(ScheduleEndWeekLabel));
+    public static string ScheduleKindLabel => Get(nameof(ScheduleKindLabel));
+    public static string ScheduleLocationLabel => Get(nameof(ScheduleLocationLabel));
+    public static string ScheduleNewTitle => Get(nameof(ScheduleNewTitle));
+    public static string ScheduleNotesLabel => Get(nameof(ScheduleNotesLabel));
+    public static string SchedulePanelHeading => Get(nameof(SchedulePanelHeading));
+    public static string ScheduleSaveFailed => Get(nameof(ScheduleSaveFailed));
+    public static string ScheduleStartWeekLabel => Get(nameof(ScheduleStartWeekLabel));
+    public static string ScheduleTimeFormatHint => Get(nameof(ScheduleTimeFormatHint));
+    public static string ScheduleTimePending => Get(nameof(ScheduleTimePending));
+    public static string ScheduleTimePendingFormat => Get(nameof(ScheduleTimePendingFormat));
+    public static string ScheduleTitleLabel => Get(nameof(ScheduleTitleLabel));
+    public static string ScheduleTitleRequired => Get(nameof(ScheduleTitleRequired));
+    public static string ScheduleWeekTypeLabel => Get(nameof(ScheduleWeekTypeLabel));
+    public static string SchedulesDroppedFormat => Get(nameof(SchedulesDroppedFormat));
+    public static string SchedulesSavedCount => Get(nameof(SchedulesSavedCount));
+    public static string SectionCourses => Get(nameof(SectionCourses));
+    public static string SectionSchedules => Get(nameof(SectionSchedules));
+    public static string ShowSchedulesCheck => Get(nameof(ShowSchedulesCheck));
+    /// <summary>下拉框里的星期名，顺序必须与 WeeklyRecurrence.DayOfWeek（1=周一）一致。</summary>
+    public static IReadOnlyList<string> CourseDayNames() => IsChinese
+        ? ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+        : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    // 复用的旧文案键
+
+    public static string EventStartLabel => Get(nameof(EventStartLabel));
+    public static string EventEndLabel => Get(nameof(EventEndLabel));
+    public static string DeleteButton => Get(nameof(DeleteButton));
+    public static string CourseDayRequired => Get(nameof(CourseDayRequired));
+    public static string CourseWeekRangeInvalid => Get(nameof(CourseWeekRangeInvalid));
+    public static string CourseNumberRangeFormat => Get(nameof(CourseNumberRangeFormat));
+    public static string EventTimeOrderInvalid => Get(nameof(EventTimeOrderInvalid));
+
     // 提示
     public static string StartupFailedFormat => Get(nameof(StartupFailedFormat));
     public static string WeatherStaleNote => Get(nameof(WeatherStaleNote));

@@ -9,6 +9,15 @@
     <Compile Include="../../DesktopCalendarWidget/Models.cs" Link="Production/Models.cs" />
     <Compile Include="../../DesktopCalendarWidget/Weather/WeatherModels.cs" Link="Production/Weather/WeatherModels.cs" />
     <Compile Include="../../DesktopCalendarWidget/RestSchedule.cs" Link="Production/RestSchedule.cs" />
+    <!-- 日程推算、类型元数据、迁移与提醒同属一块，测试也放在这里而不是翻译工程。 -->
+    <Compile Include="../../DesktopCalendarWidget/ScheduleItem.cs" Link="Production/ScheduleItem.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Agenda.cs" Link="Production/Agenda.cs" />
+    <Compile Include="../../DesktopCalendarWidget/ScheduleReminders.cs" Link="Production/ScheduleReminders.cs" />
+    <Compile Include="../../DesktopCalendarWidget/LegacyMigration.cs" Link="Production/LegacyMigration.cs" />
+    <Compile Include="../../DesktopCalendarWidget/ScheduleKinds.cs" Link="Production/ScheduleKinds.cs" />
+    <!-- 抽屉落位是纯计算，不依赖 WPF，放在这里连同日程推算一起测。 -->
+    <Compile Include="../../DesktopCalendarWidget/DrawerGeometry.cs" Link="Production/DrawerGeometry.cs" />
+    <Compile Include="../../DesktopCalendarWidget/SettingsService.cs" Link="Production/SettingsService.cs" />
     <!-- Models 的语言开关读取 Loc，链接进来才能独立编译；测试不取资源文本。 -->
     <Compile Include="../../DesktopCalendarWidget/Loc.cs" Link="Production/Loc.cs" />
   </ItemGroup>

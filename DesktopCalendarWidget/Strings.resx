@@ -227,4 +227,69 @@
   <data name="WeatherStaleNote" xml:space="preserve"><value>天气为上次数据</value></data>
   <data name="HotkeysUnavailableFormat" xml:space="preserve"><value>以下快捷键被其他程序占用，已失效：{0}</value></data>
   <data name="UpdateVerifyFailed" xml:space="preserve"><value>安装包校验未通过，已放弃安装</value></data>
+  <data name="CoursesSemesterLabel" xml:space="preserve"><value>学期开始日期（第 1 周所在周的任意一天均可，程序按周一归一；yyyy-MM-dd，留空表示不启用）：</value></data>
+  <data name="CoursesWeeksLabel" xml:space="preserve"><value>学期周数</value></data>
+  <data name="CoursesSemesterInvalid" xml:space="preserve"><value>学期开始日期格式应为 yyyy-MM-dd，或留空。</value></data>
+  <data name="CourseWeekFormat" xml:space="preserve"><value>第 {0} 周</value></data>
+  <data name="CoursesWeeksInvalid" xml:space="preserve"><value>学期周数应为 1 到 52。</value></data>
+  <data name="RemindCoursesCheck" xml:space="preserve"><value>上课前提醒</value></data>
+  <data name="ReminderMinutesLabel" xml:space="preserve"><value>提前分钟数（0–120）</value></data>
+  <data name="ReminderMinutesInvalid" xml:space="preserve"><value>提醒提前时间应为 0 到 120 分钟。</value></data>
+  <data name="EventsDayFormat" xml:space="preserve"><value>日程 {0} 项</value></data>
+  <data name="EventAllDay" xml:space="preserve"><value>全天</value></data>
+  <data name="ReminderBodyFormat" xml:space="preserve"><value>{0} 将于 {1} 开始{2}</value></data>
+  <data name="DataFileHint" xml:space="preserve"><value>再次保存课程或日程时，这些记录会被删除。可在设置中「打开数据目录」直接修改文件。</value></data>
+  <data name="NameSeparator" xml:space="preserve"><value>、</value></data>
+  <data name="NameSeparatorCompact" xml:space="preserve"><value>·</value></data>
+
+  <data name="SectionSchedules" xml:space="preserve"><value>日程</value></data>
+  <data name="ShowSchedulesCheck" xml:space="preserve"><value>在日历上显示日程</value></data>
+  <data name="AdvancedScheduleJson" xml:space="preserve"><value>高级编辑：逐行 JSON</value></data>
+  <data name="ScheduleDataHint" xml:space="preserve"><value>每行一个 JSON 对象。Kind：Course/Meeting/Travel/Reminder/Birthday/Exam/Other。一次性日程填 Date；课程填 Recurrence（DayOfWeek 1=周一…7=周日、StartWeek/EndWeek、WeekType 为 all/odd/even）。StartTime/EndTime 都留空表示全天（课程则表示时间待定）。</value></data>
+  <data name="SaveSchedulesButton" xml:space="preserve"><value>保存日程数据</value></data>
+  <data name="SchedulesSavedCount" xml:space="preserve"><value>已保存 {0} 条日程。</value></data>
+  <data name="ScheduleSaveFailed" xml:space="preserve"><value>日程文件保存失败，请检查数据目录权限。</value></data>
+  <data name="ScheduleDataInvalid" xml:space="preserve"><value>日程字段无效，请检查类型、日期与时刻的组合。</value></data>
+  <data name="ScheduleDataInvalidFormat" xml:space="preserve"><value>日程 JSON 格式错误：{0}</value></data>
+  <data name="ScheduleTimePendingFormat" xml:space="preserve"><value>有 {0} 条课程没有确定的上课时间，已标记为「时间待定」。</value></data>
+  <data name="SchedulesDroppedFormat" xml:space="preserve"><value>日程文件中有 {0} 条记录无效，已忽略。</value></data>
+  <data name="MenuShowDay" xml:space="preserve"><value>查看当日日程</value></data>
+  <data name="SchedulePanelHeading" xml:space="preserve"><value>{0} 的日程</value></data>
+  <data name="ScheduleEmptyText" xml:space="preserve"><value>这一天没有日程。点右上角「+」新增。</value></data>
+  <data name="ScheduleAddButton" xml:space="preserve"><value>新增日程</value></data>
+  <data name="ScheduleCloseButton" xml:space="preserve"><value>收起抽屉</value></data>
+  <data name="ScheduleTimePending" xml:space="preserve"><value>时间待定</value></data>
+  <data name="ScheduleNewTitle" xml:space="preserve"><value>新增日程</value></data>
+  <data name="ScheduleEditTitle" xml:space="preserve"><value>编辑日程</value></data>
+  <data name="ScheduleKindLabel" xml:space="preserve"><value>类型</value></data>
+  <data name="ScheduleTitleLabel" xml:space="preserve"><value>标题</value></data>
+  <data name="ScheduleDateHeading" xml:space="preserve"><value>日期与时间</value></data>
+  <data name="ScheduleDayLabel" xml:space="preserve"><value>星期几</value></data>
+  <data name="ScheduleStartWeekLabel" xml:space="preserve"><value>起始周</value></data>
+  <data name="ScheduleEndWeekLabel" xml:space="preserve"><value>结束周 (0 为不限)</value></data>
+  <data name="ScheduleWeekTypeLabel" xml:space="preserve"><value>单双周</value></data>
+  <data name="ScheduleLocationLabel" xml:space="preserve"><value>地点</value></data>
+  <data name="ScheduleNotesLabel" xml:space="preserve"><value>备注</value></data>
+  <data name="ScheduleTitleRequired" xml:space="preserve"><value>请填写标题。</value></data>
+  <data name="ScheduleDateRequired" xml:space="preserve"><value>请选择日期。</value></data>
+  <data name="ScheduleTimeFormatHint" xml:space="preserve"><value>时间格式应为 HH:mm。</value></data>
+  <data name="ScheduleDiscardPrompt" xml:space="preserve"><value>放弃未保存的修改？</value></data>
+  <data name="ScheduleDeleteConfirmFormat" xml:space="preserve"><value>删除日程「{0}」？</value></data>
+  <data name="KindCourse" xml:space="preserve"><value>课程</value></data>
+  <data name="KindMeeting" xml:space="preserve"><value>会议</value></data>
+  <data name="KindTravel" xml:space="preserve"><value>出行</value></data>
+  <data name="KindReminder" xml:space="preserve"><value>提醒</value></data>
+  <data name="KindBirthday" xml:space="preserve"><value>生日</value></data>
+  <data name="KindExam" xml:space="preserve"><value>考试</value></data>
+  <data name="KindOther" xml:space="preserve"><value>其他</value></data>
+
+  <data name="CourseDayRequired" xml:space="preserve"><value>请选择周几。</value></data>
+  <data name="CourseNumberRangeFormat" xml:space="preserve"><value>{0}须为 {1} 到 {2} 之间的整数。</value></data>
+  <data name="CourseTodayFormat" xml:space="preserve"><value>今天 {0} 项：{1}</value></data>
+  <data name="CourseWeekRangeInvalid" xml:space="preserve"><value>结束周不能早于起始周（0 表示不限）。</value></data>
+  <data name="DeleteButton" xml:space="preserve"><value>删除</value></data>
+  <data name="EventEndLabel" xml:space="preserve"><value>结束 (HH:mm)</value></data>
+  <data name="EventStartLabel" xml:space="preserve"><value>开始 (HH:mm)</value></data>
+  <data name="EventTimeOrderInvalid" xml:space="preserve"><value>结束时间必须晚于开始时间。</value></data>
+  <data name="SectionCourses" xml:space="preserve"><value>课程表</value></data>
 </root>

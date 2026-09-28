@@ -7,10 +7,15 @@ public sealed class SettingsService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
-    public string DataFolder { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesktopCalendarWidget");
+    public string DataFolder { get; }
+
+    public SettingsService(string? dataFolder = null) => DataFolder = dataFolder ??
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DesktopCalendarWidget");
 
     private string SettingsPath => Path.Combine(DataFolder, "settings.json");
     private string HolidaysPath => Path.Combine(DataFolder, "holidays.json");
+    private string SchedulesPath => Path.Combine(DataFolder, "schedules.json");
+    private string ReminderHistoryPath => Path.Combine(DataFolder, "course-reminders.json");
 
     public WidgetSettings Load()
     {
@@ -89,6 +94,121 @@ public sealed class SettingsService
         }
         catch (UnauthorizedAccessException)
         {
+        }
+    }
+
+    /// <summary>
+    /// 统一日程数据。文件缺失时先看有没有 1.6 之前的 courses.json / events.json，有就迁移一次。
+    /// <paramref name="dropped"/> 回传被丢弃的无效条目数：手改坏文件时调用方要能告诉用户，
+    /// 否则坏行会无声消失，并在下一次保存时被真正删掉。
+    /// </summary>
+    public List<ScheduleItem> LoadSchedules(out int dropped, out int timePending)
+    {
+        dropped = 0;
+        timePending = 0;
+        try
+        {
+            Directory.CreateDirectory(DataFolder);
+            if (!File.Exists(SchedulesPath))
+            {
+                var migration = LegacyMigration.Run(DataFolder, Agenda.ParsePeriodTimes(PeriodTimesForMigration));
+                if (!migration.Migrated) return [];
+                SaveSchedules(migration.Items);
+                dropped = migration.DroppedCourses;
+                timePending = migration.TimePendingCourses;
+                return migration.Items;
+            }
+            var source = JsonSerializer.Deserialize<List<ScheduleItem?>>(File.ReadAllText(SchedulesPath), JsonOptions);
+            var normalized = Agenda.Normalize(source);
+            dropped = CountDropped(source, Agenda.IsValid);
+            timePending = normalized.Count(Agenda.IsTimePending);
+            return normalized;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    public List<ScheduleItem> LoadSchedules() => LoadSchedules(out _, out _);
+
+    /// <summary>
+    /// 迁移旧课程要拿节次时刻表换算成时刻。SettingsService 自己不读配置，
+    /// 所以调用方必须在 LoadSchedules 之前把 settings.PeriodTimes 放进来；
+    /// 没放的话课程会迁成「时间待定」，用户可在设置里补时刻。
+    /// </summary>
+    public string? PeriodTimesForMigration { get; set; }
+
+    public bool SaveSchedules(IEnumerable<ScheduleItem?> items)
+    {
+        try
+        {
+            var source = items.ToList();
+            var normalized = Agenda.Normalize(source);
+            if (normalized.Count != source.Count) return false;
+            Directory.CreateDirectory(DataFolder);
+            WriteJsonAtomically(SchedulesPath, normalized);
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private static int CountDropped<T>(IEnumerable<T?>? items, Func<T?, bool> isValid) =>
+        items?.Count(item => !isValid(item)) ?? 0;
+
+    public HashSet<string> LoadReminderKeys(DateTime today)
+    {
+        try
+        {
+            if (!File.Exists(ReminderHistoryPath)) return [];
+            var keys = JsonSerializer.Deserialize<HashSet<string>>(File.ReadAllText(ReminderHistoryPath), JsonOptions);
+            return RecentReminderKeys(keys, today);
+        }
+        catch (JsonException) { return []; }
+        catch (IOException) { return []; }
+        catch (UnauthorizedAccessException) { return []; }
+    }
+
+    public bool SaveReminderKeys(IEnumerable<string> keys, DateTime today)
+    {
+        try
+        {
+            Directory.CreateDirectory(DataFolder);
+            WriteJsonAtomically(ReminderHistoryPath, RecentReminderKeys(keys, today));
+            return true;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
+    private static HashSet<string> RecentReminderKeys(IEnumerable<string>? keys, DateTime today)
+    {
+        var earliest = today.Date.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        return (keys ?? []).Where(key => key is { Length: >= 10 } &&
+            string.CompareOrdinal(key[..10], earliest) >= 0).ToHashSet(StringComparer.Ordinal);
+    }
+    private static void WriteJsonAtomically<T>(string path, T data)
+    {
+        var temporary = path + ".tmp";
+        try
+        {
+            File.WriteAllText(temporary, JsonSerializer.Serialize(data, JsonOptions));
+            File.Move(temporary, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporary)) File.Delete(temporary);
         }
     }
 

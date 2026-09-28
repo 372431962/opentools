@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../DesktopCalendarWidget/DesktopCalendarWidget.csproj" />
+    <!-- MainWindow.xaml 上的 Icon="/Assets/app.ico" 是相对程序集资源查找的，
+         引用工程不会自动带过来，抽屉几何冒烟测试要真建窗口就得在这里补一份。 -->
+    <Resource Include="../../DesktopCalendarWidget/Assets/app.ico" Link="Assets/app.ico" />
+  </ItemGroup>
+</Project>

@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+
 using System.Windows.Media.Effects;
 using DesktopCalendarWidget.Update;
 using DesktopCalendarWidget.Weather;
@@ -33,6 +34,20 @@ public partial class MainWindow : Window
     private readonly SettingsService settingsService = new();
     private WidgetSettings settings = new();
     private List<HolidayEntry> holidays = [];
+    private List<ScheduleItem> scheduleItems = [];
+    private HashSet<string> deliveredCourseReminders = [];
+    /// <summary>节次时刻表快照，只在迁移旧课程时用一次。</summary>
+    private IReadOnlyDictionary<int, string> periodTimes = new Dictionary<int, string>();
+    /// <summary>
+    /// 日程分桶。一次性条目按日期分桶，重复条目单独留着扫——课程就几行，
+    /// 一次性事件才可能变多，两者不该用同一套索引。
+    /// </summary>
+    private AgendaIndex agendaIndex = AgendaIndex.Empty;
+    /// <summary>抽屉当前展示的日期；null 表示抽屉收起，底部摘要展示 schedulePanelDate。</summary>
+    private DateTime? drawerDate;
+    /// <summary>底部摘要展示的日期，来自配置；null 表示跟随今天。</summary>
+    private DateTime schedulePanelDate = DateTime.Today;
+    private Guid? selectedScheduleId;
     private IReadOnlyDictionary<DateTime, HolidayEntry> holidayMap = new Dictionary<DateTime, HolidayEntry>();
     private IReadOnlyDictionary<DateTime, WeatherDay> weatherMap = new Dictionary<DateTime, WeatherDay>();
     /// <summary>上次渲染所用的天气快照引用。引用没变就不需要重绘，避免缓存命中时白刷一遍。</summary>
@@ -47,6 +62,7 @@ public partial class MainWindow : Window
     private WeatherService? weatherService;
     private DispatcherTimer? weatherTimer;
     private DispatcherTimer? midnightTimer;
+    private DispatcherTimer? courseReminderTimer;
     private TranslateWindow? translateWindow;
     private UpdateFlow? updateFlow;
     private WeatherScene? weatherScene;
@@ -97,6 +113,13 @@ public partial class MainWindow : Window
     {
         settings = settingsService.Load();
         holidays = settingsService.LoadHolidays();
+        // 迁移旧课程要用节次时刻表换算成时刻，所以必须先交给 SettingsService 再读。
+        settingsService.PeriodTimesForMigration = settings.PeriodTimes;
+        scheduleItems = settingsService.LoadSchedules(out var droppedItems, out var pendingItems);
+        reportScheduleLoad(droppedItems, pendingItems);
+        schedulePanelDate = ReadPanelDate();
+        WireDayPanels();
+        deliveredCourseReminders = settingsService.LoadReminderKeys(DateTime.Today);
         // 屏幕可能比 XAML 最小尺寸还小；先缩小最小值，再恢复尺寸和完整可见的位置。
         var screenWidth = SystemParameters.VirtualScreenWidth;
         var screenHeight = SystemParameters.VirtualScreenHeight;
@@ -126,10 +149,41 @@ public partial class MainWindow : Window
         RenderCalendar();
         StartWeather();
         ScheduleNextMidnightRefresh();
+        StartCourseReminders();
         // 切语言重建窗口时翻译窗会被搬过来，它的配置引用要跟上新读到的配置对象，
         // 否则它关闭时会把旧配置写回去，覆盖掉刚保存的语言等设置。
         translateWindow?.UpdateSettings(settings);
         updateFlow = new UpdateFlow(settingsService, settings, this);
+    }
+
+    /// <summary>
+    /// 迁移和坏数据都要让用户看见：迁移后的课程如果没配过节次时刻表，就是「时间待定」，
+    /// 界面上不会编一个假时间出来，但也不能一声不响。
+    /// </summary>
+    private void reportScheduleLoad(int dropped, int pending)
+    {
+        var parts = new List<string>();
+        if (pending > 0) parts.Add(Loc.Fmt(Loc.ScheduleTimePendingFormat, pending));
+        if (dropped > 0) parts.Add(Loc.Fmt(Loc.SchedulesDroppedFormat, dropped));
+        if (parts.Count == 0) return;
+        MessageBox.Show(this, string.Join(Environment.NewLine, parts) + Environment.NewLine + Loc.DataFileHint,
+            Loc.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
+    private DateTime ReadPanelDate() =>
+        DateTime.TryParseExact(settings.SchedulePanelDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var date) ? date.Date : DateTime.Today;
+
+    /// <summary>两个面板形态共用同一套回调：编辑、新增、关闭都交给主窗口统一落盘。</summary>
+    private void WireDayPanels()
+    {
+        foreach (var panel in new[] { BottomPanel, DrawerPanel })
+        {
+            panel.EditRequested += EditScheduleItem;
+            panel.AddRequested += _ => AddScheduleItem(drawerDate ?? schedulePanelDate);
+        }
+        BottomPanel.CloseRequested += () => CloseDrawer();
+        DrawerPanel.CloseRequested += () => CloseDrawer();
     }
 
     /// <summary>快捷键被别的程序占用时必须告知，否则「勾了没反应」最难自查。穿透那条尤其危险。</summary>
@@ -157,6 +211,8 @@ public partial class MainWindow : Window
         weatherTimer = null;
         midnightTimer?.Stop();
         midnightTimer = null;
+        courseReminderTimer?.Stop();
+        courseReminderTimer = null;
         weatherScene?.Stop();
         weatherScene = null;
         if (translateWindow is not null)
@@ -166,9 +222,11 @@ public partial class MainWindow : Window
         }
         settings.Left = Left;
         settings.Top = Top;
-        settings.Width = Width;
+        // 抽屉开着时存的是收起的宽度，否则下次启动挂件会凭空宽出一截。
+        settings.Width = Width - (drawerDate is null ? 0 : DrawerWidth);
         settings.Height = Height;
         settings.IsTopmost = Topmost;
+        settings.SchedulePanelDate = schedulePanelDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         settingsService.Save(settings);
         trayIcon?.Dispose();
         trayIcon = null;
@@ -257,6 +315,9 @@ public partial class MainWindow : Window
                 _ => Loc.WeekDoubleRest
             });
         }
+        if (BuildTodaySchedulesText() is { Length: > 0 } coursesToday) parts.Add(coursesToday);
+        if (SchedulesForDate(today).Count is var count && count > 0)
+            parts.Add(Loc.Fmt(Loc.EventsDayFormat, count));
         return string.Join(" · ", parts);
     }
 
@@ -269,6 +330,9 @@ public partial class MainWindow : Window
         settingsItem.Click += (_, _) => OpenSettings();
         var translateItem = new MenuItem { Header = Loc.MenuTranslate };
         translateItem.Click += (_, _) => OpenTranslate();
+        // 鼠标穿透时单击收不到，菜单是抽屉唯一的入口。
+        var dayItem = new MenuItem { Header = Loc.MenuShowDay };
+        dayItem.Click += (_, _) => OpenDrawerFor(schedulePanelDate);
         var visibilityItem = new MenuItem { Header = IsVisible ? Loc.MenuHideWidget : Loc.MenuShowWidget };
         visibilityItem.Click += (_, _) => ToggleWidgetVisibility();
         var updateItem = new MenuItem { Header = Loc.MenuCheckUpdate };
@@ -277,6 +341,7 @@ public partial class MainWindow : Window
         exitItem.Click += (_, _) => Close();
         menu.Items.Add(settingsItem);
         menu.Items.Add(translateItem);
+        menu.Items.Add(dayItem);
         menu.Items.Add(visibilityItem);
         menu.Items.Add(new Separator());
         menu.Items.Add(updateItem);
@@ -323,13 +388,21 @@ public partial class MainWindow : Window
         weatherMap = weatherService?.Map ?? new Dictionary<DateTime, WeatherDay>();
         renderedWeatherMap = weatherMap;
         renderedWeatherStale = weatherService?.IsStale == true;
+        // 分桶先建好，后面 42 个格子就都是查表而不是全表扫描。
+        agendaIndex = new AgendaIndex(scheduleItems);
         MonthTitle.Text = displayedMonth.ToString(Loc.MonthTitleFormat, Loc.CurrentCulture);
-        MonthCaption.Text = settings.ShowLunarEffective ? LunarCalendarConverter.GetYearLabel(displayedMonth) : "";
+        MonthCaption.Text = BuildMonthCaption();
         var todayText = DateTime.Today.ToString(Loc.DateFormatLong, Loc.CurrentCulture);
-        TodaySummary.Text = settings.ShowLunarEffective
+        var todaySummary = settings.ShowLunarEffective
             ? $"{Loc.TodayPrefix} {todayText} · {LunarCalendarConverter.Format(DateTime.Today)}"
             : $"{Loc.TodayPrefix} {todayText}";
+        if (BuildTodaySchedulesText() is { Length: > 0 } todayItems) todaySummary = $"{todaySummary} · {todayItems}";
+        if (SchedulesForDate(DateTime.Today).Count is var eventCount && eventCount > 0)
+            todaySummary = $"{todaySummary} · {Loc.Fmt(Loc.EventsDayFormat, eventCount)}";
+        TodaySummary.Text = todaySummary;
         Legend.Text = BuildLegendText();
+        BindPanels();
+        
         ApplyWeatherScene();
         trayIcon?.SetToolTip(BuildTrayToolTip());
         CalendarGrid.Children.Clear();
@@ -375,6 +448,69 @@ public partial class MainWindow : Window
         }
     }
 
+    private string BuildMonthCaption()
+    {
+        var parts = new List<string>();
+        if (settings.ShowLunarEffective) parts.Add(LunarCalendarConverter.GetYearLabel(displayedMonth));
+        // displayedMonth 恒为当月 1 号，直接拿它算周次会显示「第 1 号那周」，
+        // 与用户实际所处的周差半个月。当月视图改用今天，翻看其它月份时用 1 号兜底。
+        var weekAnchor = displayedMonth.Year == DateTime.Today.Year && displayedMonth.Month == DateTime.Today.Month
+            ? DateTime.Today
+            : displayedMonth;
+        var week = settings.ShowSchedules
+            ? Agenda.WeekIndex(weekAnchor, settings.SemesterStart, settings.SemesterWeeks)
+            : null;
+        if (week is int index) parts.Add(Loc.Fmt(Loc.CourseWeekFormat, index));
+        return string.Join(" · ", parts.Where(x => !string.IsNullOrWhiteSpace(x)));
+    }
+    private IReadOnlyList<ScheduleItem> SchedulesForDate(DateTime date) => settings.ShowSchedules
+        ? agendaIndex.ItemsForDate(date, settings.SemesterStart, settings.SemesterWeeks)
+        : [];
+
+    /// <summary>今日摘要里那句「今天 N 条：xxx」，日程为空时返回 null。</summary>
+    private string? BuildTodaySchedulesText()
+    {
+        var today = SchedulesForDate(DateTime.Today);
+        if (today.Count == 0) return null;
+        var names = string.Join(Loc.NameSeparator, today.Take(3).Select(x => x.Title));
+        if (today.Count > 3) names = $"{names} +{today.Count - 3}";
+        return Loc.Fmt(Loc.CourseTodayFormat, today.Count, names);
+    }
+
+    /// <summary>日期格里那条两门课 +「+N」的窄摘要。抽屉展开后不再需要它，日期格保持干净。</summary>
+    private TextBlock? BuildCellScheduleLine(IReadOnlyList<ScheduleItem> items)
+    {
+        if (items.Count == 0) return null;
+        static string Short(string name) => name.Length <= 5 ? name : name[..5];
+        var names = string.Join(Loc.NameSeparatorCompact, items.Take(2).Select(x => Short(x.Title)));
+        if (items.Count > 2) names = $"{names}+{items.Count - 2}";
+        return new TextBlock
+        {
+            Text = names,
+            FontSize = 10,
+            MaxWidth = 90,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            ToolTip = Loc.Fmt(Loc.CourseTodayFormat, items.Count, string.Join(Loc.NameSeparator, items.Select(x => x.Title))),
+            Effect = (Effect)FindResource("TextShadow")
+        };
+    }
+
+    private string BuildSchedulesToolTip(IReadOnlyList<ScheduleItem> items)
+    {
+        if (items.Count == 0) return "";
+        return string.Join(Environment.NewLine, items.Select(item =>
+        {
+            var time = Agenda.IsAllDay(item) ? Loc.EventAllDay
+                : Agenda.IsTimePending(item) ? Loc.ScheduleTimePending
+                : Agenda.TimeLabel(item);
+            var line = $"{ScheduleKinds.Icon(item.Kind)} {time} {item.Title}";
+            if (!string.IsNullOrWhiteSpace(item.Location)) line += $" · {item.Location}";
+            if (!string.IsNullOrWhiteSpace(item.Notes)) line += $" · {item.Notes}";
+            return line;
+        }));
+    }
+
     /// <summary>背景动画只跟当天天气走：开关关闭、没有当天数据或现象无法识别时退回静态底色。</summary>
     private void ApplyWeatherScene()
     {
@@ -411,17 +547,23 @@ public partial class MainWindow : Window
         var isWorkdayAdjustment = schedule.IsWorkdayAdjustment;
         var isHoliday = schedule.IsHoliday;
         var weather = settings.ShowWeather && weatherMap.TryGetValue(date, out var found) ? found : null;
+        var dayItems = SchedulesForDate(date);
 
         var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        stack.Children.Add(new TextBlock
+        var dateHeader = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
+        dateHeader.Children.Add(new TextBlock
         {
             Text = date.Day.ToString(CultureInfo.InvariantCulture),
             FontSize = 22,
-            HorizontalAlignment = HorizontalAlignment.Center,
             FontWeight = isToday ? FontWeights.Bold : FontWeights.Normal,
             Effect = (Effect)FindResource("TextShadow")
         });
+        if (dayItems.Count > 0)
+            dateHeader.Children.Add(new TextBlock { Text = $" ·{dayItems.Count}", FontSize = 11,
+                Foreground = FindBrush("WidgetAccent"), VerticalAlignment = VerticalAlignment.Bottom });
+        stack.Children.Add(dateHeader);
         if (weather is not null && BuildWeatherLine(weather, date) is { } weatherLine) stack.Children.Add(weatherLine);
+        if (BuildCellScheduleLine(dayItems) is { } scheduleLine) stack.Children.Add(scheduleLine);
         if (settings.ShowLunarEffective)
         {
             stack.Children.Add(new TextBlock
@@ -463,6 +605,8 @@ public partial class MainWindow : Window
         }
 
         var toolTipText = BuildToolTip(date, settings.ShowHolidaysEffective ? holiday : null, weather);
+        var scheduleTip = BuildSchedulesToolTip(dayItems);
+        if (scheduleTip.Length > 0) toolTipText = $"{toolTipText}{Environment.NewLine}{scheduleTip}";
         var button = new Button
         {
             Content = stack,
@@ -480,7 +624,16 @@ public partial class MainWindow : Window
         if (isWorkdayAdjustment) button.Foreground = FindBrush("WidgetWorkday");
         else if (isRestDay) button.Foreground = FindBrush("WidgetWeekend");
 
+        button.Click += (_, _) => ToggleDrawerFor(date);
         button.MouseDoubleClick += (_, _) => GoToToday();
+        var dayMenu = new ContextMenu();
+        var showDay = new MenuItem { Header = Loc.MenuShowDay };
+        showDay.Click += (_, _) => OpenDrawerFor(date);
+        var addItem = new MenuItem { Header = Loc.ScheduleAddButton };
+        addItem.Click += (_, _) => AddScheduleItem(date);
+        dayMenu.Items.Add(showDay);
+        dayMenu.Items.Add(addItem);
+        button.ContextMenu = dayMenu;
         return button;
     }
 
@@ -543,6 +696,154 @@ public partial class MainWindow : Window
     private void NextButton_Click(object sender, RoutedEventArgs e) { displayedMonth = displayedMonth.AddMonths(1); RenderCalendar(); }
     private void TodayButton_Click(object sender, RoutedEventArgs e) => GoToToday();
 
+    // ---- 日程抽屉 ----
+    //
+    // 几何约定：日历与抽屉并排，日历列占满窗口，抽屉列宽 0 或 DrawerWidth。
+    // 展开 = 窗口向屏幕边缘方向变宽 DrawerWidth，同时把日历列钉死在原宽度上。
+    // 钉死是关键：不钉的话列宽和窗口宽同时变，日历会在动画中途被挤扁再拉回来。
+    // 窗口比内容窄的部分会被裁掉，于是抽屉看起来就是从屏幕边缘「抽」出来的。
+    private const double DrawerAnimationMs = 200;
+
+    /// <summary>抽屉宽度来自配置并夹在能放下内容的区间里；太窄的抽屉不如不展开。</summary>
+    private double DrawerWidth =>
+        double.IsFinite(settings.SchedulePanelWidth) ? Math.Clamp(settings.SchedulePanelWidth, 200, 420) : 300;
+
+    /// <summary>右侧空间不够时抽屉改到日历左边，并把窗口往左推。</summary>
+    private bool drawerOnLeft;
+
+    /// <summary>展开前的窗口宽度，动画期间用来把日历钉住。</summary>
+    private double pinnedCalendarWidth;
+
+    private void ToggleDrawerFor(DateTime date)
+    {
+        if (drawerDate == date.Date) CloseDrawer();
+        else OpenDrawerFor(date);
+    }
+
+    private void OpenDrawerFor(DateTime date)
+    {
+        drawerDate = date.Date;
+        selectedScheduleId = null;
+        pinnedCalendarWidth = Width;
+        var placement = DrawerGeometry.Open(Left, Width,
+            SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth, DrawerWidth);
+        drawerOnLeft = placement.OnLeft;
+
+        SetDrawerSide(DrawerWidth);
+        DrawerColumn.Width = new GridLength(DrawerWidth);
+        Drawer.Width = DrawerWidth;
+        Drawer.Visibility = Visibility.Visible;
+        DrawerPanel.SetExpanded(true);
+        BindPanels();
+        AnimateDrawer(placement.Width, placement.Left);
+    }
+
+    private void CloseDrawer()
+    {
+        if (drawerDate is null) return;
+        drawerDate = null;
+        DrawerPanel.SetExpanded(false);
+        var placement = DrawerGeometry.Close(new DrawerPlacement(Left, Width, drawerOnLeft), pinnedCalendarWidth);
+        AnimateDrawer(placement.Width, placement.Left, () =>
+        {
+            DrawerColumn.Width = new GridLength(0);
+            Drawer.Width = 0;
+            Drawer.Visibility = Visibility.Collapsed;
+            SetDrawerSide(0);
+        });
+        BindPanels();
+    }
+
+    /// <summary>把日历和抽屉摆到对应的那一列。列号是给子元素设的，所以翻边就是换列号。</summary>
+    private void SetDrawerSide(double drawerWidth)
+    {
+        Grid.SetColumn(Drawer, drawerOnLeft ? 0 : 1);
+        Grid.SetColumn(CalendarHost, drawerOnLeft ? 1 : 0);
+        Drawer.SetValue(Border.BorderThicknessProperty,
+            drawerOnLeft ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0));
+        // 抽屉占 0 时那一列整体不参与布局，日历独占窗口；抽屉有宽度时先钉住日历。
+        CalendarColumn.Width = drawerWidth <= 0
+            ? new GridLength(1, GridUnitType.Star)
+            : new GridLength(pinnedCalendarWidth);
+    }
+
+    /// <summary>
+    /// 窗口变宽 + 位置微调走同一个计时器，日历全程不动。
+    /// 不用 Storyboard 是因为要同时驱动窗口两个属性、还要在结束后解钉日历列，
+    /// 一个 16ms 的计时器比两段动画加一个 Completed 回调更好读。
+    /// </summary>
+    private void AnimateDrawer(double toWidth, double toLeft, Action? onCompleted = null)
+    {
+        drawerAnimation?.Stop();
+        var fromWidth = Width;
+        var fromLeft = Left;
+        var deltaWidth = toWidth - fromWidth;
+        var deltaLeft = toLeft - fromLeft;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        var elapsed = 0.0;
+        timer.Tick += (_, _) =>
+        {
+            elapsed += timer.Interval.TotalMilliseconds;
+            var t = Math.Clamp(elapsed / DrawerAnimationMs, 0, 1);
+            // ease-out：起步快收尾慢，抽屉像是被甩出来再停住。
+            var ease = 1 - Math.Pow(1 - t, 3);
+            Width = fromWidth + deltaWidth * ease;
+            Left = fromLeft + deltaLeft * ease;
+            if (t < 1) return;
+            timer.Stop();
+            drawerAnimation = null;
+            Width = toWidth;
+            Left = toLeft;
+            onCompleted?.Invoke();
+        };
+        drawerAnimation = timer;
+        timer.Start();
+    }
+
+    private DispatcherTimer? drawerAnimation;
+
+    private void BindPanels()
+    {
+        var date = drawerDate ?? schedulePanelDate;
+        var items = SchedulesForDate(date);
+        // 抽屉展开时把底部摘要收掉：同一天的内容同时出现在两处只会让人以为是两天。
+        BottomPanelHost.Visibility = settings.ShowSchedules && drawerDate is null ? Visibility.Visible : Visibility.Collapsed;
+        BottomPanel.SetExpanded(false);
+        BottomPanel.Bind(date, items, selectedScheduleId);
+        if (drawerDate is not null) DrawerPanel.Bind(date, items, selectedScheduleId);
+    }
+
+    /// <summary>新增或编辑完都要落盘再重绘；写失败要明说，否则界面和数据会对不上。</summary>
+    private void ApplyScheduleEdit(List<ScheduleItem> updated, string failureText)
+    {
+        if (!settingsService.SaveSchedules(updated))
+        {
+            MessageBox.Show(this, failureText, Loc.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        scheduleItems = updated;
+        agendaIndex = new AgendaIndex(scheduleItems);
+        settings.SchedulePanelDate = schedulePanelDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        settingsService.Save(settings);
+        BindPanels();
+        RenderCalendar();
+    }
+
+    private void AddScheduleItem(DateTime date)
+    {
+        var editor = new ScheduleEditorWindow(scheduleItems, null, date) { Owner = this };
+        if (editor.ShowDialog() != true) return;
+        ApplyScheduleEdit(editor.Items, Loc.ScheduleSaveFailed);
+    }
+
+    private void EditScheduleItem(ScheduleItem item)
+    {
+        var editor = new ScheduleEditorWindow(scheduleItems, item, item.Date ?? (drawerDate ?? schedulePanelDate)) { Owner = this };
+        if (editor.ShowDialog() != true) return;
+        selectedScheduleId = item.Id;
+        ApplyScheduleEdit(editor.Items, Loc.ScheduleSaveFailed);
+    }
+
     private void GoToToday()
     {
         displayedMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -561,6 +862,9 @@ public partial class MainWindow : Window
         settingsItem.Click += (_, _) => OpenSettings();
         var translateItem = new MenuItem { Header = Loc.MenuTranslate };
         translateItem.Click += (_, _) => OpenTranslate();
+        // 鼠标穿透时单击收不到，菜单是抽屉唯一的入口。
+        var dayItem = new MenuItem { Header = Loc.MenuShowDay };
+        dayItem.Click += (_, _) => OpenDrawerFor(schedulePanelDate);
         var lockItem = new MenuItem { Header = settings.IsLocked ? Loc.MenuUnlock : Loc.MenuLock, IsCheckable = true, IsChecked = settings.IsLocked };
         lockItem.Click += (_, _) => { settings.IsLocked = lockItem.IsChecked; settingsService.Save(settings); ApplyLock(); };
         var clickItem = new MenuItem { Header = Loc.MenuClickThrough, IsCheckable = true, IsChecked = settings.IsClickThrough };
@@ -575,6 +879,7 @@ public partial class MainWindow : Window
         exitItem.Click += (_, _) => Close();
         menu.Items.Add(settingsItem);
         menu.Items.Add(translateItem);
+        menu.Items.Add(dayItem);
         menu.Items.Add(lockItem);
         menu.Items.Add(clickItem);
         menu.Items.Add(topItem);
@@ -620,10 +925,16 @@ public partial class MainWindow : Window
         var dialog = new SettingsWindow(settings, holidays, updateFlow) { Owner = this };
         if (dialog.ShowDialog() != true)
         {
-            // 下载与「保存本地数据」都会即时落盘，取消也要让内存跟上磁盘，否则要等重启才对得上。
+            // 「保存本地数据」会即时落盘，取消也要让内存跟上磁盘，否则要等重启才对得上。
             if (dialog.HolidaysPersisted)
             {
                 holidays = dialog.Holidays;
+                RenderCalendar();
+            }
+            if (dialog.SchedulesPersisted)
+            {
+                scheduleItems = dialog.Schedules;
+                agendaIndex = new AgendaIndex(scheduleItems);
                 RenderCalendar();
             }
             // 「立即更新天气」用的是编辑中未保存的城市，共享的 WeatherService 已经切到那份数据。
@@ -635,6 +946,8 @@ public partial class MainWindow : Window
         // 换成新对象的话，它们之后 Save 的就是旧对象，会把刚保存的设置覆盖回去。
         settings.ApplyEditedSettings(dialog.Settings);
         holidays = dialog.Holidays;
+        scheduleItems = dialog.Schedules;
+        agendaIndex = new AgendaIndex(scheduleItems);
         settingsService.Save(settings);
         settingsService.SaveHolidays(holidays);
         if (dialog.RestartRequested)
@@ -647,7 +960,23 @@ public partial class MainWindow : Window
         updateFlow?.Reschedule();
         // 天气配置可能变了，重挂定时器；有改动就立刻拉一次，避免等下一个周期。
         StartWeather(forceInitial: dialog.WeatherChanged);
+        StartCourseReminders();
+        // 抽屉开着时宽度跟着新配置走，锁定位也允许自由缩放。
+        if (drawerDate is not null) ApplyDrawerWidth(drawerDate.Value);
         RenderCalendar();
+    }
+
+    /// <summary>只改抽屉列宽，不重播开合动画：设置里改宽度时用它。</summary>
+    private void ApplyDrawerWidth(DateTime date)
+    {
+        var delta = DrawerWidth - DrawerColumn.Width.Value;
+        pinnedCalendarWidth = Width - DrawerColumn.Width.Value;
+        SetDrawerSide(DrawerWidth);
+        DrawerColumn.Width = new GridLength(DrawerWidth);
+        Drawer.Width = DrawerWidth;
+        Width += delta;
+        drawerDate = date.Date;
+        BindPanels();
     }
 
     /// <summary>刷新间隔归一：与设置窗口 NormalizeRefresh 同一口径，0 或负值按默认 60 分钟，不是 5 分钟。</summary>
@@ -666,6 +995,36 @@ public partial class MainWindow : Window
             ScheduleNextMidnightRefresh();
         };
         midnightTimer.Start();
+    }
+
+    private void StartCourseReminders()
+    {
+        courseReminderTimer?.Stop();
+        courseReminderTimer = null;
+        // 没有课程时不挂 30 秒的空转定时器：省电，也避免每个 tick 都走一遍推算。
+        if (!settings.CourseRemindersEnabled || settings.SemesterStart is null ||
+            !scheduleItems.Any(x => x.Kind == ScheduleKind.Course)) return;
+        courseReminderTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        courseReminderTimer.Tick += (_, _) => CheckCourseReminders();
+        courseReminderTimer.Start();
+        CheckCourseReminders();
+    }
+
+    private void CheckCourseReminders()
+    {
+        if (trayIcon is null || !settings.CourseRemindersEnabled) return;
+        var now = DateTime.Now;
+        var due = ScheduleReminders.Due(now, agendaIndex, settings.SemesterStart, settings.SemesterWeeks,
+            settings.CourseReminderMinutes, deliveredCourseReminders);
+        foreach (var reminder in due)
+        {
+            var room = string.IsNullOrWhiteSpace(reminder.Location) ? "" : $" · {reminder.Location}";
+            var message = Loc.Fmt(Loc.ReminderBodyFormat, reminder.Title,
+                reminder.StartsAt.ToString("HH:mm", CultureInfo.InvariantCulture), room);
+            if (!trayIcon.ShowBalloon(Loc.SectionCourses, message)) continue;
+            deliveredCourseReminders.Add(reminder.Key);
+            settingsService.SaveReminderKeys(deliveredCourseReminders, now.Date);
+        }
     }
 
     private void StartWeather(bool forceInitial = false)

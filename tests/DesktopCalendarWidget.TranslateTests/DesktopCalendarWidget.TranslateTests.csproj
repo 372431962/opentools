@@ -28,6 +28,13 @@
     <Compile Include="../../DesktopCalendarWidget/Weather/WttrInWeatherProvider.cs" Link="Production/Weather/WttrInWeatherProvider.cs" />
     <Compile Include="../../DesktopCalendarWidget/Weather/WeatherService.cs" Link="Production/Weather/WeatherService.cs" />
     <Compile Include="../../DesktopCalendarWidget/Update/UpdateService.cs" Link="Production/Update/UpdateService.cs" />
+    <Compile Include="../../DesktopCalendarWidget/RestSchedule.cs" Link="Production/RestSchedule.cs" />
+    <!-- SettingsService 依赖日程模型才能编译（Load/SaveSchedules、LoadReminderKeys）。
+         行为测试已迁到 ScheduleTests，这里只为满足引用。 -->
+    <Compile Include="../../DesktopCalendarWidget/ScheduleItem.cs" Link="Production/ScheduleItem.cs" />
+    <Compile Include="../../DesktopCalendarWidget/Agenda.cs" Link="Production/Agenda.cs" />
+    <Compile Include="../../DesktopCalendarWidget/ScheduleKinds.cs" Link="Production/ScheduleKinds.cs" />
+    <Compile Include="../../DesktopCalendarWidget/LegacyMigration.cs" Link="Production/LegacyMigration.cs" />
   </ItemGroup>
   <ItemGroup>
     <!-- 与主工程同名的资源，才能在这里验证 TranslateDictionary.LoadEmbedded 真的读得到词条。 -->

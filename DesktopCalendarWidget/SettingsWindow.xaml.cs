@@ -35,6 +35,11 @@ public partial class SettingsWindow : Window
     private bool anchorWeekIsSingleAtLoad;
     private bool scheduleReady;
 
+    public List<ScheduleItem> Schedules { get; private set; } = [];
+
+    public bool SchedulesPersisted { get; private set; }
+    /// <summary>上次落盘的日程 JSON 原文，用来判断这次保存是否真的需要写文件。</summary>
+    private string savedScheduleJson = "";
     public WidgetSettings Settings { get; private set; }
     public List<HolidayEntry> Holidays { get; private set; }
 
@@ -66,6 +71,8 @@ public partial class SettingsWindow : Window
         // 旧配置里可能是 0 或超出区间的值，先归一再回填，否则下拉会静默选中第一项。
         originalWeatherRefresh = NormalizeRefresh(settings.WeatherRefreshMinutes);
         Holidays = holidays.ToList();
+        settingsService.PeriodTimesForMigration = settings.PeriodTimes;
+        Schedules = settingsService.LoadSchedules();
 
         LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.LanguageChinese });
         LanguageCombo.Items.Add(new ComboBoxItem { Content = Loc.LanguageEnglish });
@@ -79,6 +86,13 @@ public partial class SettingsWindow : Window
         UpdateUrlBox.Text = settings.HolidayUpdateUrl;
 
         ShowWeatherCheck.IsChecked = settings.ShowWeather;
+        ShowSchedulesCheck.IsChecked = settings.ShowSchedules;
+        SemesterStartBox.Text = settings.SemesterStart?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "";
+        SemesterWeeksBox.Text = settings.SemesterWeeks.ToString(CultureInfo.InvariantCulture);
+        ScheduleJsonBox.Text = FormatScheduleJson(Schedules);
+        savedScheduleJson = ScheduleJsonBox.Text;
+        RemindCoursesCheck.IsChecked = settings.CourseRemindersEnabled;
+        ReminderMinutesBox.Text = settings.CourseReminderMinutes.ToString(CultureInfo.InvariantCulture);
         originalWeatherLocation = settings.WeatherLocation;
         updatingWeatherLocationUi = true;
         WeatherCityBox.Text = originalWeatherLocation?.DisplayName ?? originalWeatherCity;
@@ -337,6 +351,82 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// 课程区的校验失败会连带中止整个设置保存，所以除了灰色状态行还要弹窗，
+    /// 否则只改天气/语言的用户点「保存」会看到「什么都没发生」。
+    /// </summary>
+    /// <summary>
+    /// 日程区的校验失败会连带中止整个设置保存，所以除了灰色状态行还要弹窗，
+    /// 否则只改天气/语言的用户点「保存」会看到「什么都没发生」。
+    /// </summary>
+    private bool FailSchedules(string message, Control focus)
+    {
+        SchedulesStatus.Text = message;
+        MessageBox.Show(this, message, Loc.AppTitle, MessageBoxButton.OK, MessageBoxImage.Warning);
+        focus.Focus();
+        return false;
+    }
+
+    private bool TryReadScheduleEditor(out List<ScheduleItem> parsed)
+    {
+        parsed = [];
+        List<ScheduleItem?> items;
+        try
+        {
+            items = [];
+            foreach (var line in ScheduleJsonBox.Text.Split([Environment.NewLine, "\n", "\r"],
+                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                items.Add(JsonSerializer.Deserialize<ScheduleItem>(line, JsonOptions));
+        }
+        catch (Exception ex)
+        {
+            ScheduleJsonExpander.IsExpanded = true;
+            return FailSchedules(Loc.Fmt(Loc.ScheduleDataInvalidFormat, ex.Message), ScheduleJsonBox);
+        }
+        if (items.Any(x => !Agenda.IsValid(x)))
+        {
+            ScheduleJsonExpander.IsExpanded = true;
+            return FailSchedules(Loc.ScheduleDataInvalid, ScheduleJsonBox);
+        }
+        parsed = Agenda.Normalize(items);
+        return true;
+    }
+
+    private static string FormatScheduleJson(IEnumerable<ScheduleItem> items) =>
+        string.Join(Environment.NewLine, items.Select(x => JsonSerializer.Serialize(x, JsonOptions)));
+
+    private void SaveSchedulesButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (!TryReadScheduleEditor(out var parsed)) return;
+        if (!settingsService.SaveSchedules(parsed))
+        {
+            FailSchedules(Loc.ScheduleSaveFailed, ScheduleJsonBox);
+            return;
+        }
+        Schedules = parsed;
+        SchedulesPersisted = true;
+        savedScheduleJson = ScheduleJsonBox.Text;
+        SchedulesStatus.Text = Loc.Fmt(Loc.SchedulesSavedCount, Schedules.Count);
+    }
+
+    private bool TryReadSemester(out DateTime? start, out int weeks)
+    {
+        start = null;
+        weeks = 0;
+        var text = SemesterStartBox.Text.Trim();
+        DateTime? semester = null;
+        if (text.Length > 0)
+        {
+            if (!DateTime.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
+                return FailSchedules(Loc.CoursesSemesterInvalid, SemesterStartBox);
+            semester = parsed.Date;
+        }
+        start = semester;
+        if (!int.TryParse(SemesterWeeksBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out weeks) || weeks is < 1 or > 52)
+            return FailSchedules(Loc.CoursesWeeksInvalid, SemesterWeeksBox);
+        return true;
+    }
+
     private bool TryReadHolidayEditor(out List<HolidayEntry> parsed)
     {
         parsed = [];
@@ -388,7 +478,26 @@ public partial class SettingsWindow : Window
 
     private void SaveButton_Click(object sender, RoutedEventArgs e)
     {
-        if (!TryReadHolidayEditor(out var parsed)) return;
+        if (!TryReadHolidayEditor(out var parsed) || !TryReadScheduleEditor(out var parsedSchedules) || !TryReadSemester(out var semesterStart, out var semesterWeeks)) return;
+        if (!int.TryParse(ReminderMinutesBox.Text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var reminderMinutes) ||
+            reminderMinutes is < 0 or > 120)
+        {
+            FailSchedules(Loc.ReminderMinutesInvalid, ReminderMinutesBox);
+            return;
+        }
+        // 只在课程真的变了才落盘：改个窗口透明度不该重写 courses.json，
+        // 更不该因为它写失败就把整个设置保存一起中止。
+        // 只在日程真的变了才落盘：改个窗口透明度不该重写 schedules.json，
+        // 更不该因为它写失败就把整个设置保存一起中止。
+        var schedulesChanged = ScheduleJsonBox.Text != savedScheduleJson;
+        if (schedulesChanged && !settingsService.SaveSchedules(parsedSchedules))
+        {
+            FailSchedules(Loc.ScheduleSaveFailed, ScheduleJsonBox);
+            return;
+        }
+        Schedules = parsedSchedules;
+        if (schedulesChanged) SchedulesPersisted = true;
+        savedScheduleJson = ScheduleJsonBox.Text;
         Holidays = parsed;
         RefreshCurrentWeek();
 
@@ -406,6 +515,11 @@ public partial class SettingsWindow : Window
         Settings.SingleRestDay = SingleRestCombo.SelectedIndex == 0 ? SingleRestDay.Saturday : SingleRestDay.Sunday;
 
         Settings.ShowWeather = ShowWeatherCheck.IsChecked == true;
+        Settings.ShowSchedules = ShowSchedulesCheck.IsChecked == true;
+        Settings.SemesterStart = semesterStart;
+        Settings.SemesterWeeks = semesterWeeks;
+        Settings.CourseRemindersEnabled = RemindCoursesCheck.IsChecked == true;
+        Settings.CourseReminderMinutes = reminderMinutes;
         var city = WeatherCityBox.Text.Trim();
         Settings.WeatherCity = city.Length == 0 ? WidgetSettings.DefaultWeatherCity : city;
         if (WeatherLocationCombo.SelectedItem is WeatherLocation selectedLocation)

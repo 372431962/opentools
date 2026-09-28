@@ -300,8 +300,300 @@ internal static class Program
             Equal(!first, RestSchedule.GetDaySchedule(firstSaturday.AddDays(7), s, map).IsRestDay, "still alternates after 100 years");
             Console.WriteLine($"100-year / 44 day queries: {watch.ElapsedMilliseconds} ms");
         });
+
+        // ---- 日程：定位方式互斥、按天查询、类型与展示顺序 ----
+        Run("semester week normalizes to Monday and bounds the range", () =>
+        {
+            Equal(1, Agenda.WeekIndex(new DateTime(2026, 9, 9), new DateTime(2026, 9, 9), 16), "start date midweek is week one");
+            Equal(null, Agenda.WeekIndex(new DateTime(2026, 9, 6), new DateTime(2026, 9, 7), 16), "before semester");
+            Equal(null, Agenda.WeekIndex(new DateTime(2026, 12, 28), new DateTime(2026, 9, 7), 16), "after semester");
+        });
+        Run("a schedule is either dated or recurring, never both", () =>
+        {
+            Equal(true, Agenda.IsValid(Meeting(1)), "one-off");
+            Equal(true, Agenda.IsValid(Course(1)), "recurring");
+            // 两套定位都填或都不填都不是合法状态，否则「这天到底算不算有课」无从判断。
+            Equal(false, Agenda.IsValid(new ScheduleItem { Kind = ScheduleKind.Course, Title = "X",
+                Date = new DateTime(2026, 9, 8), Recurrence = new WeeklyRecurrence { DayOfWeek = 1 } }), "both filled");
+            Equal(false, Agenda.IsValid(new ScheduleItem { Kind = ScheduleKind.Course, Title = "X" }), "neither filled");
+            Equal(false, Agenda.IsValid(new ScheduleItem { Kind = ScheduleKind.Meeting, Title = "  " }), "blank title");
+            Equal(false, Agenda.IsValid(new ScheduleItem { Id = Guid.Empty, Kind = ScheduleKind.Meeting, Title = "X",
+                Date = new DateTime(2026, 9, 8) }), "empty id");
+            Equal(false, Agenda.IsValid(Course(0)), "weekday out of range");
+        });
+        Run("all-day and time-pending are different states", () =>
+        {
+            // 一次性没时刻 = 全天；重复没时刻 = 时间待定，不能混成同一个显示。
+            var untimed = new ScheduleItem { Kind = ScheduleKind.Meeting, Title = "Offsite", Date = new DateTime(2026, 9, 8) };
+            Equal(true, Agenda.IsAllDay(untimed), "one-off without time is all day");
+            Equal(false, Agenda.IsAllDay(Course(1)), "recurring without time is not all day");
+            Equal(false, Agenda.IsAllDay(Course(1)), "recurring with time is not all day");
+            Equal(true, Agenda.IsTimePending(PendingCourse()), "recurring without time is pending");
+            Equal(false, Agenda.IsTimePending(untimed), "one-off without time is not pending");
+            Equal("09:00-10:00", Agenda.TimeLabel(Timed(Meeting(1))), "time label");
+            Equal("", Agenda.TimeLabel(untimed), "no time label");
+        });
+        Run("courses filter by odd even weeks and sort by time", () =>
+        {
+            var mondayWeek1 = new DateTime(2026, 9, 7);
+            var index = new AgendaIndex([
+                Timed(Course(1, "Even", ScheduleWeekType.Even), 12, 13),
+                Timed(Course(1, "Zeta"), 8, 9),
+                Timed(Course(1, "Odd", ScheduleWeekType.Odd), 14, 15),
+                Timed(Course(1, "Alpha"), 8, 9)]);
+            Equal("Alpha,Zeta,Odd", Names(index, mondayWeek1, mondayWeek1, 16), "week one order");
+            Equal("Alpha,Zeta,Even", Names(index, mondayWeek1.AddDays(7), mondayWeek1, 16), "week two order");
+        });
+        Run("one-off and recurring share the same query path", () =>
+        {
+            var monday = new DateTime(2026, 9, 7);
+            var index = new AgendaIndex([
+                Course(1, "Class"),
+                Timed(Meeting(monday, "Standup")),
+                Meeting(monday.AddDays(1), "Offsite")]);
+            Equal("Class,Standup", Names(index, monday, monday, 16), "same day merges both kinds");
+            Equal("Offsite", Names(index, monday.AddDays(1), monday, 16), "one-off on another day");
+            // 学期外重复条目不出现，但一次性事件与学期无关，仍然要显示。
+            Equal("", Names(index, monday.AddDays(30), monday, 16), "recurring stops outside the semester");
+            Equal("Offsite", Names(index, monday.AddDays(1), monday.AddDays(30), 16), "one-off ignores the semester");
+        });
+        Run("display order puts all-day first and time-pending last", () =>
+        {
+            var day = new DateTime(2026, 9, 8);
+            var index = new AgendaIndex([
+                Timed(Meeting(day, "Evening"), 19, 20),
+                PendingCourse(2),
+                Meeting(day, "AllDay"),
+                Timed(Meeting(day, "Morning"))]);
+            Equal("AllDay,Morning,Evening,Pending", Names(index, day, day, 16), "bucket order");
+        });
+        Run("normalize dedupes by id and trims text", () =>
+        {
+            var id = Guid.NewGuid();
+            var normalized = Agenda.Normalize([null,
+                new ScheduleItem { Id = id, Kind = ScheduleKind.Meeting, Title = "  Lab  ",
+                    Date = new DateTime(2026, 9, 8, 22, 30, 0), Location = " A1 ", Notes = "  " },
+                new ScheduleItem { Id = id, Kind = ScheduleKind.Other, Title = "Dup", Date = new DateTime(2026, 9, 8) },
+                new ScheduleItem { Kind = ScheduleKind.Meeting, Title = "", Date = new DateTime(2026, 9, 8) }]);
+            Equal(1, normalized.Count, "only the first of a duplicate id survives");
+            Equal("Lab", normalized[0].Title, "trimmed title");
+            Equal("A1", normalized[0].Location, "trimmed location");
+            Equal(null, normalized[0].Notes, "blank notes become null");
+            Equal(new DateTime(2026, 9, 8), normalized[0].Date, "date truncated to midnight");
+            // 时区无关：否则落盘会带 "+08:00"，手改 JSON 时很迷惑。
+            Equal(DateTimeKind.Unspecified, normalized[0].Date!.Value.Kind, "date carries no timezone");
+        });
+        Run("period times parse and expose both ends", () =>
+        {
+            var times = Agenda.ParsePeriodTimes("1=08:00-08:45;2=08:55-09:40;bad=x;31=10:00-11:00;3=oops;4=10:00-09:00");
+            Equal(new TimeOnly(8, 0), Agenda.PeriodStart(times, 1), "period start");
+            Equal(new TimeOnly(8, 45), Agenda.PeriodEnd(times, 1), "period end");
+            Equal(new TimeOnly(9, 40), Agenda.PeriodEnd(times, 2), "second period end");
+            Equal(null, Agenda.PeriodStart(times, 3), "invalid range ignored");
+            Equal(null, Agenda.PeriodStart(times, 31), "period upper bound");
+        });
+        Run("schedule kinds parse leniently and have distinct colors", () =>
+        {
+            Equal(ScheduleKind.Course, ScheduleKinds.Parse("course"), "case insensitive");
+            Equal(ScheduleKind.Other, ScheduleKinds.Parse("nonsense"), "unknown falls back to Other");
+            Equal(ScheduleKind.Other, ScheduleKinds.Parse(null), "null falls back to Other");
+            Equal(7, ScheduleKinds.All.Count, "seven kinds");
+            Equal(ScheduleKinds.All.Distinct().Count(), ScheduleKinds.All.Select(ScheduleKinds.Color).Distinct().Count(),
+                "every kind has its own color");
+            Equal(true, ScheduleKinds.SupportsRecurrence(ScheduleKind.Course), "only courses repeat");
+            Equal(false, ScheduleKinds.SupportsRecurrence(ScheduleKind.Meeting), "meetings do not repeat");
+        });
+        Run("course reminders fire once, cross midnight and key on id", () =>
+        {
+            var monday = new DateTime(2026, 9, 28);
+            var first = Timed(Course(1, "Algebra"), 0, 1);
+            var index = new AgendaIndex([first]);
+            var now = monday.AddDays(-1).AddHours(23).AddMinutes(45);
+            var due = ScheduleReminders.Due(now, index, monday, 2, 60, new HashSet<string>());
+            Equal(1, due.Count, "previous-day reminder");
+            Equal(0, ScheduleReminders.Due(now, index, monday, 2, 60, new HashSet<string> { due[0].Key }).Count, "deduplicated");
+            Equal(0, ScheduleReminders.Due(monday.AddMinutes(31), index, monday, 2, 60, new HashSet<string>()).Count, "not after start");
+            Equal(1, ScheduleReminders.Due(monday.AddSeconds(30), index, monday, 2, 0, new HashSet<string>()).Count,
+                "zero minute lead at start");
+            Equal(0, ScheduleReminders.Due(monday.AddMinutes(2), index, monday, 2, 0, new HashSet<string>()).Count,
+                "zero minute window closes");
+            // 时间待定的课提醒不了：拿不出开始时刻就不该假装有。
+            Equal(0, ScheduleReminders.Due(now, new AgendaIndex([PendingCourse(1, "NoTime")]), monday, 2, 60, new HashSet<string>()).Count,
+                "time-pending course does not remind");
+            Equal(0, ScheduleReminders.Due(now, new AgendaIndex([Timed(Meeting(monday, "Sync"))]), monday, 2, 60, new HashSet<string>()).Count,
+                "non-course does not remind");
+            // 改名不该让去重失效，所以键里带的是 Id 而不是标题：同一个条目改了名，键不变。
+            var before = due[0].Key;
+            first.Title = "Algebra II";
+            Equal(before, ScheduleReminders.ReminderKey(first, monday), "rename does not change the key");
+        });
+        Run("legacy courses and events migrate into one file", () => WithScratchFolder("legacy-migration", folder =>
+        {
+            File.WriteAllText(Path.Combine(folder, "courses.json"),
+                "[{\"Name\":\"  高等数学  \",\"DayOfWeek\":1,\"StartPeriod\":1,\"EndPeriod\":2,\"Location\":\"A101\"," +
+                "\"Teacher\":\"王老师\",\"WeekType\":\"ODD\",\"StartWeek\":3,\"EndWeek\":12}," +
+                "{\"Name\":\"无时刻课\",\"DayOfWeek\":3,\"StartPeriod\":9,\"EndPeriod\":10}," +
+                "{\"Name\":\"\",\"DayOfWeek\":1}]");
+            var eventId = Guid.NewGuid();
+            File.WriteAllText(Path.Combine(folder, "events.json"),
+                "[{\"Id\":\"" + eventId + "\",\"Title\":\"Exam\",\"Date\":\"2026-09-28T00:00:00\"," +
+                "\"AllDay\":false,\"StartTime\":\"13:00:00\",\"EndTime\":\"14:00:00\",\"Location\":\"B2\"}," +
+                "{\"Id\":\"" + Guid.NewGuid() + "\",\"Title\":\"\",\"Date\":\"2026-09-28T00:00:00\"}]");
+            var result = LegacyMigration.Run(folder, Agenda.ParsePeriodTimes("1=08:00-08:45;2=08:55-09:40"));
+            Equal(true, result.Migrated, "legacy files detected");
+            Equal(2, result.DroppedCourses, "one blank course and one blank event dropped");
+            Equal(1, result.TimePendingCourses, "course without period times is pending");
+            Equal(3, result.Items.Count, "two courses and one event survive");
+            var math = result.Items.First(x => x.Title == "高等数学");
+            Equal(ScheduleKind.Course, math.Kind, "course kind");
+            Equal(new TimeOnly(8, 0), math.StartTime, "period 1 became 08:00");
+            Equal(new TimeOnly(9, 40), math.EndTime, "period 2 end became 09:40");
+            Equal("odd", math.Recurrence!.WeekType, "week type normalized");
+            Equal(3, math.Recurrence.StartWeek, "start week kept");
+            Equal("王老师", math.Notes, "teacher becomes notes");
+            Equal(true, Agenda.IsTimePending(result.Items.First(x => x.Title == "无时刻课")),
+                "course without times is pending, not all-day");
+            var exam = result.Items.First(x => x.Title == "Exam");
+            Equal(eventId, exam.Id, "event keeps its id across migration");
+            Equal(ScheduleKind.Other, exam.Kind, "legacy events become Other");
+            Equal(new TimeOnly(13, 0), exam.StartTime, "event time kept");
+        }));
+        Run("schedule storage round trips and leaves no temp file", () => WithScratchFolder("schedule-storage", folder =>
+        {
+            var store = new SettingsService(folder);
+            var course = Timed(Course(1, "  Algebra  "));
+            var meeting = Timed(Meeting(new DateTime(2026, 9, 28), "Sync"));
+            Equal(true, store.SaveSchedules([course, meeting]), "initial save");
+            var restored = store.LoadSchedules(out var dropped, out var pending);
+            Equal(2, restored.Count, "round trip count");
+            Equal(0, dropped, "nothing dropped");
+            Equal(0, pending, "nothing pending");
+            Equal("Algebra", restored[0].Title, "trimmed title");
+            Equal(ScheduleKind.Course, restored[0].Kind, "kind round trips");
+            Equal(true, restored[0].Recurrence is not null, "recurrence round trips");
+            Equal(meeting.Id, restored[1].Id, "stable identity");
+            Equal(false, store.SaveSchedules([course,
+                    new ScheduleItem { Kind = ScheduleKind.Meeting, Title = "", Date = DateTime.Today }]),
+                "invalid save refused");
+            Equal(2, store.LoadSchedules().Count, "previous file preserved");
+            Equal(false, File.Exists(Path.Combine(folder, "schedules.json.tmp")), "temp file cleaned up");
+        }));
+        Run("legacy files migrate on first load only", () => WithScratchFolder("auto-migrate", folder =>
+        {
+            File.WriteAllText(Path.Combine(folder, "courses.json"),
+                "[{\"Name\":\"高等数学\",\"DayOfWeek\":1,\"StartPeriod\":1,\"EndPeriod\":2}]");
+            var store = new SettingsService(folder) { PeriodTimesForMigration = "1=08:00-08:45;2=08:55-09:40" };
+            Equal(1, store.LoadSchedules().Count, "migrated on first load");
+            Equal(true, File.Exists(Path.Combine(folder, "schedules.json")), "new file written");
+            // 第二次起读新文件，旧文件删掉也不影响。
+            File.Delete(Path.Combine(folder, "courses.json"));
+            Equal(1, new SettingsService(folder).LoadSchedules().Count, "still one schedule after legacy file is gone");
+        }));
+        Run("loading reports how many records were dropped", () => WithScratchFolder("dropped-count", folder =>
+        {
+            File.WriteAllText(Path.Combine(folder, "schedules.json"),
+                "[{\"Id\":\"" + Guid.NewGuid() + "\",\"Kind\":1,\"Title\":\"Review\",\"Date\":\"2026-09-28T00:00:00\"}," +
+                "{\"Id\":\"" + Guid.NewGuid() + "\",\"Kind\":1,\"Title\":\"\",\"Date\":\"2026-09-28T00:00:00\"}," +
+                "{\"Id\":\"" + Guid.NewGuid() + "\",\"Kind\":1,\"Title\":\"Both\",\"Date\":\"2026-09-28T00:00:00\"," +
+                "\"Recurrence\":{\"DayOfWeek\":1}},null]");
+            var items = new SettingsService(folder).LoadSchedules(out var dropped, out var pending);
+            Equal(1, items.Count, "only the valid record survives");
+            Equal(3, dropped, "null, blank title and both-locations records reported");
+            Equal(0, pending, "no pending records");
+            Equal(ScheduleKind.Meeting, items[0].Kind, "numeric kind still deserializes");
+        }));
+        Run("drawer grows rightwards when the screen has room", () =>
+        {
+            // 1920 宽的屏幕，挂件在左边：往右长，位置一点不动。
+            var opened = DrawerGeometry.Open(100, 640, 0, 1920, 300);
+            Equal(100, opened.Left, "position untouched");
+            Equal(940, opened.Width, "window grew by the drawer width");
+            Equal(false, opened.OnLeft, "stayed on the right");
+            var closed = DrawerGeometry.Close(opened, 640);
+            Equal(100, closed.Left, "close keeps the position");
+            Equal(640, closed.Width, "close restores the width");
+        });
+        Run("drawer flips left when the widget hugs the right edge", () =>
+        {
+            // 挂件贴着 1920 的右缘：右边放不下，往左长，位置左移 300。
+            var left = 1920 - 640 - 2;
+            var opened = DrawerGeometry.Open(left, 640, 0, 1920, 300);
+            Equal(true, opened.OnLeft, "flipped to the left");
+            Equal(left - 300, opened.Left, "window moved left by the drawer width");
+            Equal(940, opened.Width, "window still grew by the drawer width");
+            var closed = DrawerGeometry.Close(opened, 640);
+            Equal(left, closed.Left, "close moves the window back");
+            Equal(640, closed.Width, "close restores the width");
+        });
+        Run("drawer refuses to flip when the left has no room either", () =>
+        {
+            // 两边都挤不下时宁可不翻边，也不要把日历推出屏幕。
+            var opened = DrawerGeometry.Open(30, 640, 0, 1920, 300);
+            Equal(false, opened.OnLeft, "stays on the right");
+            Equal(30, opened.Left, "position untouched");
+        });
+        Run("secondary monitors with a negative origin are handled", () =>
+        {
+            // 显示器摆在主屏左边时 VirtualScreenLeft 是负数，右缘计算不能用 Left + width 直接比。
+            var opened = DrawerGeometry.Open(-1200, 640, -1280, 1280, 300);
+            Equal(false, opened.OnLeft, "plenty of room on the right of a left-hand monitor");
+            Equal(-1200, opened.Left, "position untouched");
+            var flipped = DrawerGeometry.Open(-650, 640, -1280, 1280, 300);
+            Equal(true, flipped.OnLeft, "flips when hugging that monitor's right edge");
+        });
+
         return Report();
     }
+
+    /// <summary>在临时目录里跑一次存储往返，结束即删；不落在用户数据目录。</summary>
+    private static void WithScratchFolder(string label, Action<string> body)
+    {
+        var folder = Path.Combine(Environment.GetEnvironmentVariable("PI_SCRATCH_DIR") ?? AppContext.BaseDirectory,
+            $"{label}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        try { body(folder); }
+        finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+    }
+
+    private static ScheduleItem Meeting(int dayOffset, string title = "Meeting") =>
+        Meeting(new DateTime(2026, 9, 7).AddDays(dayOffset - 1), title);
+
+    private static ScheduleItem Meeting(DateTime date, string title = "Meeting") => new()
+        {
+            Kind = ScheduleKind.Meeting,
+            Title = title,
+            Date = date.Date,
+            StartTime = new TimeOnly(9, 0),
+            EndTime = new TimeOnly(10, 0)
+        };
+
+        private static ScheduleItem Course(int dayOfWeek, string title = "Class",
+            string weekType = ScheduleWeekType.All) => new()
+        {
+            Kind = ScheduleKind.Course,
+            Title = title,
+            StartTime = new TimeOnly(8,  0),
+            EndTime = new TimeOnly(9, 40),
+            Recurrence = new WeeklyRecurrence { DayOfWeek = dayOfWeek, StartWeek = 1, EndWeek = 16, WeekType = weekType }
+        };
+
+    /// <summary>一门没配时刻的课：界面上显示「时间待定」，不是全天。</summary>
+    private static ScheduleItem PendingCourse(int dayOfWeek = 1, string title = "Pending") => new()
+    {
+        Kind = ScheduleKind.Course,
+        Title = title,
+        Recurrence = new WeeklyRecurrence { DayOfWeek = dayOfWeek, StartWeek = 1, EndWeek = 16 }
+    };
+
+    private static ScheduleItem Timed(ScheduleItem item, int startHour = 9, int endHour = 10)
+        {
+            item.StartTime = new TimeOnly(startHour, 0);
+            item.EndTime = new TimeOnly(endHour, 0);
+            return item;
+        }
+
+    private static string Names(AgendaIndex index, DateTime date, DateTime? semesterStart, int weeks) =>
+        string.Join(',', index.ItemsForDate(date, semesterStart, weeks).Select(x => x.Title));
 
     private static int Report()
     {
