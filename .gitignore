@@ -5,3 +5,10 @@
 .vs/
 *.user
 *.suo
+# 构建/安装临时产物与本地工具缓存，不入库
+Temp/
+# 本地调研笔记与 agent 记忆
+research/
+.workbuddy-ai/
+# brainstorming 的可视化草图
+.superpowers/
