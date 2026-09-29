@@ -48,11 +48,16 @@
                         <Button Grid.Column="2" Content="›" FontSize="26" Width="44" Height="36" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="{x:Static loc:Loc.NextMonthTip}" Effect="{StaticResource TextShadow}"/>
                     </Grid>
                     <Grid x:Name="CalendarGrid" Grid.Row="2"/>
-                    <!-- 抽屉收起时唯一可见的日程入口：日历下方一条可滚动摘要。 -->
-                    <Grid x:Name="BottomPanelHost" Grid.Row="3" Margin="0,10,0,0">
-                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                    <!--
+                        高度写死，不跟着内容走。上面 CalendarGrid 是星号宽高、这一块原本是 Auto，
+                        于是底部区域的空态/列表态高度差被日历整块吸收：打开抽屉时底部区域会重绑到
+                        抽屉那天的日期，有日程和没日程高度不同，日历就跟着跳一下。
+                        固定高度后日历尺寸只由窗口大小决定，底部区域内部自己滚动。
+                    -->
+                    <Grid x:Name="BottomPanelHost" Grid.Row="3" Height="150" Margin="0,10,0,0">
+                        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Border Height="1" Background="{StaticResource Border}"/>
-                        <local:DayAgendaPanel x:Name="BottomPanel" Grid.Row="1" Margin="0,8,0,0" MaxHeight="96"/>
+                        <local:DayAgendaPanel x:Name="BottomPanel" Grid.Row="1" Margin="0,8,0,0"/>
                         <TextBlock x:Name="Legend" Grid.Row="2" Margin="0,8,0,0" FontSize="12" TextWrapping="Wrap"
                                    Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
                     </Grid>
