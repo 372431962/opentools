@@ -27,6 +27,35 @@ internal static class PanelSmoke
             Program.Require(add.Visibility == Visibility.Visible, "add button is always available");
         });
 
+        run("the close button stays inside the header at every drawer width", () =>
+        {
+            // 回归：标题和按钮曾是同一个 Grid 里叠放的两个子元素，日期一长就把右边的按钮
+            // 挤出内容区被裁掉，关闭按钮直接消失。改成两列之后，按钮列必须始终在可视范围内。
+            foreach (var width in new[] { 200.0, 300.0, 420.0 })
+            {
+                var panel = new DayAgendaPanel();
+                panel.SetExpanded(true);
+                // 塞一条很长的日期标题，模拟英文界面或长年份。
+                panel.Bind(new DateTime(2026, 9, 9), [], null);
+                Realize(panel, width);
+                panel.UpdateLayout();
+
+                var header = (FrameworkElement)panel.FindName("Header")!;
+                var close = (Button)panel.FindName("CloseButton")!;
+                var add = (Button)panel.FindName("AddButton")!;
+                var host = (FrameworkElement)panel.FindName("Scroller")!;
+                var right = host.ActualWidth > 0 ? host.ActualWidth : width;
+                Program.Require(close.ActualWidth > 4,
+                    $"close button collapsed to {close.ActualWidth} at width {width}");
+                Program.Require(add.ActualWidth > 4,
+                    $"add button collapsed to {add.ActualWidth} at width {width}");
+                Program.Require(close.ActualWidth + add.ActualWidth + 6 <= right + 0.5,
+                    $"buttons ({add.ActualWidth}+{close.ActualWidth}) overflow {right} at width {width}");
+                Program.Require(header.ActualWidth <= right + 0.5,
+                    $"header {header.ActualWidth} is wider than {right} at width {width}");
+            }
+        });
+
         run("clicking close raises the close request", () =>
         {
             var panel = new DayAgendaPanel();
@@ -115,10 +144,10 @@ internal static class PanelSmoke
     /// ItemsControl 不经过一次布局就不会生成容器，ContainerFromIndex 只会返回 null。
     /// 面板不在可视树里，所以这里手动走一遍 Measure/Arrange。
     /// </summary>
-    private static void Realize(FrameworkElement element)
+    private static void Realize(FrameworkElement element, double width = 1000)
     {
-        element.Measure(new Size(1000, 1000));
-        element.Arrange(new Rect(0, 0, 1000, 1000));
+        element.Measure(new Size(width, 1000));
+        element.Arrange(new Rect(0, 0, width, 1000));
         element.UpdateLayout();
     }
 

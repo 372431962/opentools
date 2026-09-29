@@ -12,14 +12,22 @@
             <RowDefinition Height="Auto"/><RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!--
+            标题分两列：左边是星号宽的日期文字（会截断），右边是固定宽的按钮。
+            原来两者是同一个 Grid 里叠放的两个子元素，日期一长（英文界面尤其明显）就把
+            右边的按钮挤出内容区被裁掉，关闭按钮因此消失。
+        -->
         <Grid x:Name="Header" Margin="0,0,0,6" Background="Transparent">
-            <StackPanel Orientation="Horizontal">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,6,0">
                 <TextBlock x:Name="DateText" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
-                           Foreground="{StaticResource Ink}" Effect="{StaticResource TextShadow}"/>
+                           TextTrimming="CharacterEllipsis" Foreground="{StaticResource Ink}"
+                           Effect="{StaticResource TextShadow}"/>
                 <TextBlock x:Name="CountText" Margin="8,0,0,0" FontSize="12" VerticalAlignment="Center"
-                           Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
+                           TextTrimming="CharacterEllipsis" Foreground="{StaticResource WidgetMutedInk}"
+                           Effect="{StaticResource TextShadow}"/>
             </StackPanel>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button x:Name="AddButton" Content="+" Padding="9,3" Click="AddButton_Click"
                         ToolTip="{x:Static loc:Loc.ScheduleAddButton}" Effect="{StaticResource TextShadow}"/>
                 <!--
@@ -55,12 +63,17 @@
             <!-- 收起态只露出两三行，展开态占满抽屉高度；同一个 ScrollViewer 两种高度都能滚。 -->
             <ScrollViewer x:Name="Scroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <ItemsControl x:Name="ItemList">
+                    <!--
+                        竖排列表而不是 WrapPanel：卡片要能撑满可用宽度，标题才会按真实宽度截断。
+                        WrapPanel 给每个子元素它的期望宽度，MaxWidth 只能写死一个猜出来的数，
+                        而抽屉宽度是用户可调的 200–420，写死就会在窄抽屉里溢出。
+                    -->
                     <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                        <ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Margin="0,0,8,8" Padding="8,5" CornerRadius="5" Background="#26FFFFFF"
+                            <Border Margin="0,0,0,6" Padding="8,5" CornerRadius="5" Background="#26FFFFFF"
                                     BorderThickness="1" Cursor="Hand" MouseLeftButtonUp="Item_MouseLeftButtonUp">
                                 <Border.Style>
                                     <Style TargetType="Border">
@@ -79,7 +92,7 @@
                                         <TextBlock Text="{Binding Icon}" FontSize="11" VerticalAlignment="Center"/>
                                         <TextBlock Text="{Binding Title}" FontSize="13" Margin="5,0,0,0"
                                                    FontWeight="SemiBold" Foreground="{StaticResource Ink}"
-                                                   TextTrimming="CharacterEllipsis" MaxWidth="210"/>
+                                                   TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
                                         <!-- 类型名跟着界面语言走，不要在界面上暴露枚举标识符。 -->
@@ -89,7 +102,7 @@
                                                    Foreground="{StaticResource WidgetMutedInk}"/>
                                         <TextBlock Text="{Binding Place}" FontSize="11" Margin="6,0,0,0"
                                                    Foreground="{StaticResource WidgetMutedInk}"
-                                                   TextTrimming="CharacterEllipsis" MaxWidth="150"/>
+                                                   TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
