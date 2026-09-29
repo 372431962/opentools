@@ -54,6 +54,19 @@ public static class ScheduleKinds
         ScheduleKind.Reminder, ScheduleKind.Birthday, ScheduleKind.Exam, ScheduleKind.Other
     ];
 
+    /// <summary>
+    /// 下拉框的一行：显示本地化名称，值仍是枚举。
+    /// 直接把枚举塞进 Items 的话，界面上出现的是 Course / Meeting / Travel 这些英文标识符，
+    /// 中文界面下也一样，跟语言设置脱钩。
+    /// </summary>
+    public sealed record Option(ScheduleKind Kind, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    public static IReadOnlyList<Option> Options =>
+        All.Select(kind => new Option(kind, Label(kind))).ToList();
+
     /// <summary>只有课程是按学期周次重复的；其余类型都是一次性事件。</summary>
     public static bool SupportsRecurrence(ScheduleKind kind) => kind == ScheduleKind.Course;
 

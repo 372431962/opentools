@@ -6,6 +6,7 @@
         Width="640" Height="820" MinWidth="560" MinHeight="720"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ShowInTaskbar="False" ResizeMode="CanResize" Topmost="False" Icon="/Assets/app.ico"
+        PreviewKeyDown="Window_PreviewKeyDown"
         Title="{x:Static loc:Loc.AppTitle}">
     <Border x:Name="Chrome" Margin="10" Padding="16" Background="{StaticResource WidgetSurface}" BorderBrush="{StaticResource WidgetSurfaceBorder}" BorderThickness="1" CornerRadius="12">
         <Grid>

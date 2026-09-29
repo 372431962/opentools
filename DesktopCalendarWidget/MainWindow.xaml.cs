@@ -507,7 +507,7 @@ public partial class MainWindow : Window
             var time = Agenda.IsAllDay(item) ? Loc.EventAllDay
                 : Agenda.IsTimePending(item) ? Loc.ScheduleTimePending
                 : Agenda.TimeLabel(item);
-            var line = $"{ScheduleKinds.Icon(item.Kind)} {time} {item.Title}";
+            var line = $"{ScheduleKinds.Icon(item.Kind)} {ScheduleKinds.Label(item.Kind)} · {time} {item.Title}";
             if (!string.IsNullOrWhiteSpace(item.Location)) line += $" · {item.Location}";
             if (!string.IsNullOrWhiteSpace(item.Notes)) line += $" · {item.Notes}";
             return line;
@@ -888,6 +888,14 @@ public partial class MainWindow : Window
     {
         displayedMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         RenderCalendar();
+    }
+
+    /// <summary>抽屉开着时 Esc 收起。除了点「✕」和再点同一天之外的第三条退路。</summary>
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || drawerDate is null) return;
+        CloseDrawer();
+        e.Handled = true;
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

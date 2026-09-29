@@ -22,9 +22,30 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="AddButton" Content="+" Padding="9,3" Click="AddButton_Click"
                         ToolTip="{x:Static loc:Loc.ScheduleAddButton}" Effect="{StaticResource TextShadow}"/>
-                <Button x:Name="CloseButton" Content="✕" Padding="9,3" Margin="6,0,0,0" Visibility="Collapsed"
+                <!--
+                    关闭按钮原来只是一个裸的「✕」字符。全局 Button 样式给了透明背景和零边框，
+                    挂在半透明挂件上几乎看不见，等于没有关闭入口。这里补上边框和底色，
+                    让它一眼就是个能按的按钮。
+                -->
+                <Button x:Name="CloseButton" Content="✕" Padding="8,2" Margin="6,0,0,0" Visibility="Collapsed"
                         Click="CloseButton_Click" ToolTip="{x:Static loc:Loc.ScheduleCloseButton}"
-                        Effect="{StaticResource TextShadow}"/>
+                        Background="#40FFFFFF" BorderBrush="{StaticResource Border}" BorderThickness="1"
+                        FontSize="12">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="#66FFFFFF"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -43,7 +64,8 @@
                                     BorderThickness="1" Cursor="Hand" MouseLeftButtonUp="Item_MouseLeftButtonUp">
                                 <Border.Style>
                                     <Style TargetType="Border">
-                                        <Setter Property="BorderBrush" Value="#1A2B2925"/>
+                                        <!-- 细边框用类型自己的颜色，扫一眼就能分清课程和会议。 -->
+                                        <Setter Property="BorderBrush" Value="{Binding Color}"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsSelected}" Value="True">
                                                 <Setter Property="BorderBrush" Value="#B44837"/>
@@ -60,11 +82,14 @@
                                                    TextTrimming="CharacterEllipsis" MaxWidth="210"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
-                                        <TextBlock Text="{Binding Time}" FontSize="11"
+                                        <!-- 类型名跟着界面语言走，不要在界面上暴露枚举标识符。 -->
+                                        <TextBlock Text="{Binding KindLabel}" FontSize="11"
+                                                   Foreground="{Binding Color}"/>
+                                        <TextBlock Text="{Binding Time}" FontSize="11" Margin="6,0,0,0"
                                                    Foreground="{StaticResource WidgetMutedInk}"/>
                                         <TextBlock Text="{Binding Place}" FontSize="11" Margin="6,0,0,0"
                                                    Foreground="{StaticResource WidgetMutedInk}"
-                                                   TextTrimming="CharacterEllipsis" MaxWidth="170"/>
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="150"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Border>

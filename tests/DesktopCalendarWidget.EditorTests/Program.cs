@@ -12,6 +12,12 @@ internal static class Program
     private static int Main()
     {
         var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+        // 测试自建 Application 不会跑 App.xaml，但面板和编辑窗口的 XAML 用 StaticResource
+        // 引用了主题里的画刷。Theme.xaml 是纯 ResourceDictionary，合并进来不会触发 App 构造。
+        app.Resources.MergedDictionaries.Add(new ResourceDictionary
+        {
+            Source = new Uri("pack://application:,,,/DesktopCalendarWidget;component/Theme.xaml", UriKind.Absolute)
+        });
         // 模态确认框在无人值守时永远等不到回答，测试里一律自动同意。
         ScheduleEditorWindow.Confirm = (_, _, _, _) => true;
         var day = new DateTime(2026, 9, 28);
@@ -66,7 +72,7 @@ internal static class Program
             var accepted = Show(editor, () =>
             {
                 Box(editor, "TitleBox").Text = "Math";
-                ((ComboBox)editor.FindName("KindCombo")!).SelectedItem = ScheduleKind.Course;
+                ((ComboBox)editor.FindName("KindCombo")!).SelectedValue = ScheduleKind.Course;
                 Box(editor, "StartWeekBox").Text = "3";
                 Box(editor, "EndWeekBox").Text = "12";
                 Click(editor, "SaveButton");
@@ -76,9 +82,9 @@ internal static class Program
             Require(saved.Kind == ScheduleKind.Course, $"kind was {saved.Kind}");
             Require(saved.Date is null, $"one-off date leaked in: {saved.Date}");
             Require(saved.Recurrence is not null, "recurrence missing");
-            Require(saved.Recurrence.DayOfWeek == 1, $"weekday was {saved.Recurrence.DayOfWeek}");
-            Require(saved.Recurrence.StartWeek == 3 && saved.Recurrence.EndWeek == 12,
-                $"week range was {saved.Recurrence.StartWeek}-{saved.Recurrence.EndWeek}");
+            // 用模式匹配而不是先 Require 再解引用：编译器不知道 Require 会抛，拿不到非空推断。
+            Require(saved.Recurrence is { DayOfWeek: 1, StartWeek: 3, EndWeek: 12 },
+                $"week range was {saved.Recurrence?.DayOfWeek} {saved.Recurrence?.StartWeek}-{saved.Recurrence?.EndWeek}");
             Require(saved.StartTime == new TimeOnly(9, 0), $"start was {saved.StartTime}");
         });
         Run("a course with no time saves as time-pending, not all day", () =>
@@ -87,7 +93,7 @@ internal static class Program
             var accepted = Show(editor, () =>
             {
                 Box(editor, "TitleBox").Text = "NoTime";
-                ((ComboBox)editor.FindName("KindCombo")!).SelectedItem = ScheduleKind.Course;
+                ((ComboBox)editor.FindName("KindCombo")!).SelectedValue = ScheduleKind.Course;
                 Box(editor, "StartBox").Text = "";
                 Box(editor, "EndBox").Text = "";
                 Click(editor, "SaveButton");
@@ -109,6 +115,8 @@ internal static class Program
             Require(accepted == true && Agenda.IsAllDay(saved) && saved.StartTime is null,
                 "all-day meeting still carries a time");
         });
+        PanelSmoke.Run(Run);
+
         app.Shutdown();
         Console.WriteLine($"Tests: {tests}, failures: {failures}");
         return failures == 0 ? 0 : 1;
@@ -136,7 +144,13 @@ internal static class Program
         Exception? error = null;
         window.Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
-            try { action(); }
+            try
+            {
+                action();
+                // 动作跑完但对话框还开着，说明校验没过、DialogResult 没被设。
+                // 这里直接收掉，否则 ShowDialog 会一直等下去，测试表现为超时而不是失败。
+                if (window.DialogResult is null) window.DialogResult = false;
+            }
             catch (Exception ex) { error = ex; window.DialogResult = false; }
         }));
         var accepted = window.ShowDialog();
@@ -160,7 +174,7 @@ internal static class Program
         catch (Exception ex) { failures++; Console.WriteLine($"FAIL {name}: {ex.Message}"); }
     }
 
-    private static void Require(bool ok, string message)
+    internal static void Require(bool ok, string message)
     {
         if (!ok) throw new InvalidOperationException(message);
     }

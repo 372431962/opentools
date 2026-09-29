@@ -24,6 +24,11 @@ internal static class Program
         if (!EqualityComparer<T>.Default.Equals(expected, actual))
             throw new InvalidOperationException($"{message}: expected={expected}, actual={actual}");
     }
+    private static void True(bool condition, string message)
+    {
+        assertions++;
+        if (!condition) throw new InvalidOperationException(message);
+    }
     private static void Run(string name, Action test)
     {
         tests++;
@@ -562,6 +567,32 @@ internal static class Program
             var closed = DrawerGeometry.Close(switched, 640);
             Equal(100, closed.Left, "position restored");
             Equal(640, closed.Width, "width restored");
+        });
+
+        Run("schedule kind labels follow the interface language", () =>
+        {
+            // 下拉框曾直接塞枚举，界面上出现的是 Course / Meeting 这些标识符，与语言设置脱钩。
+            Equal(7, ScheduleKinds.Options.Count, "one option per kind");
+            // List 按引用比较，要比内容就比拼出来的字符串。
+            Equal(string.Join(",", ScheduleKinds.All), string.Join(",", ScheduleKinds.Options.Select(o => o.Kind)),
+                "order matches All");
+            foreach (var option in ScheduleKinds.Options)
+            {
+                True(option.Label.Length > 0, $"option {option.Kind} has a label");
+                // 标签必须来自资源，不能是枚举标识符本身。
+                True(!option.Label.Equals(option.Kind.ToString(), StringComparison.Ordinal),
+                    $"label for {option.Kind} is not the raw enum name");
+            }
+            // 七个类型的名字互不相同，否则下拉里两行看不出差别。
+            Equal(7, ScheduleKinds.Options.Select(o => o.Label).Distinct().Count(), "labels are distinct");
+        });
+        Run("panel rows expose a localized kind label and the kind colour", () =>
+        {
+            // 这些只在 WPF 层用得到，这里只保证取值入口存在且跟随语言。
+            var option = ScheduleKinds.Options.First(o => o.Kind == ScheduleKind.Course);
+            Equal(ScheduleKinds.Label(ScheduleKind.Course), option.Label, "label matches the accessor");
+            Equal(ScheduleKinds.CourseColor, ScheduleKinds.Color(ScheduleKind.Course), "course colour");
+            Equal(ScheduleKinds.All.Select(ScheduleKinds.Color).Distinct().Count(), 7, "colours stay distinct");
         });
 
         return Report();

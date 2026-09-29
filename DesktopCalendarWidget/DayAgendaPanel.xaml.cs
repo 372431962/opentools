@@ -79,6 +79,26 @@ public partial class DayAgendaPanel : UserControl
 
         public string Icon => ScheduleKinds.Icon(Item.Kind);
 
+        /// <summary>类型名。跟随界面语言：中文界面显示「课程」，英文界面显示 Class。</summary>
+        public string KindLabel => ScheduleKinds.Label(Item.Kind);
+
+        /// <summary>类型自己的颜色，卡片细边框和类型名都用它。</summary>
+        public System.Windows.Media.Brush Color
+        {
+            get
+            {
+                if (color is null)
+                {
+                    color = new System.Windows.Media.SolidColorBrush(
+                        (System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString(Item.Color ?? ScheduleKinds.Color(Item.Kind)));
+                    color.Freeze();
+                }
+                return color;
+            }
+        }
+
+        private System.Windows.Media.Brush? color;
+
         public string Title => Item.Title;
 
         public string Time => Agenda.IsAllDay(Item) ? Loc.EventAllDay

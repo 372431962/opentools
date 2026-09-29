@@ -42,7 +42,7 @@ public partial class ScheduleEditorWindow : Window
         CancelButton.Content = Loc.CancelButton;
         DeleteButton.Content = Loc.DeleteButton;
 
-        foreach (var kind in ScheduleKinds.All) KindCombo.Items.Add(kind);
+        foreach (var option in ScheduleKinds.Options) KindCombo.Items.Add(option);
         foreach (var day in Loc.CourseDayNames()) DayCombo.Items.Add(day);
         WeekTypeCombo.Items.Add(ScheduleWeekType.All);
         WeekTypeCombo.Items.Add(ScheduleWeekType.Odd);
@@ -60,7 +60,7 @@ public partial class ScheduleEditorWindow : Window
     private void FillNew()
     {
         loading = true;
-        KindCombo.SelectedItem = ScheduleKind.Meeting;
+        KindCombo.SelectedValue = ScheduleKind.Meeting;
         TitleBox.Text = "";
         DatePicker.SelectedDate = defaultDate;
         AllDayCheck.IsChecked = false;
@@ -81,7 +81,7 @@ public partial class ScheduleEditorWindow : Window
     private void FillForm(ScheduleItem item)
     {
         loading = true;
-        KindCombo.SelectedItem = Enum.IsDefined(item.Kind) ? item.Kind : ScheduleKind.Other;
+        KindCombo.SelectedValue = Enum.IsDefined(item.Kind) ? item.Kind : ScheduleKind.Other;
         TitleBox.Text = item.Title;
         DatePicker.SelectedDate = item.Date ?? defaultDate;
         AllDayCheck.IsChecked = item.StartTime is null && item.EndTime is null;
@@ -102,7 +102,7 @@ public partial class ScheduleEditorWindow : Window
     /// <summary>类型决定这一条是重复课程还是一次性事件，字段随之整组切换。</summary>
     private void ApplyKindVisibility()
     {
-        var recurring = KindCombo.SelectedItem is ScheduleKind kind && ScheduleKinds.SupportsRecurrence(kind);
+        var recurring = KindCombo.SelectedValue is ScheduleKind kind && ScheduleKinds.SupportsRecurrence(kind);
         OneOffFields.Visibility = recurring ? Visibility.Collapsed : Visibility.Visible;
         RecurringFields.Visibility = recurring ? Visibility.Visible : Visibility.Collapsed;
         if (recurring)
@@ -117,7 +117,7 @@ public partial class ScheduleEditorWindow : Window
     private void KindCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // 构造期 InitializeComponent 之后 KindCombo 还没有内容，选中项为 null 是正常中间态。
-        if (KindCombo.SelectedItem is null) return;
+        if (KindCombo.SelectedValue is null) return;
         ApplyKindVisibility();
         MarkDirty(this, new RoutedEventArgs());
     }
@@ -147,7 +147,7 @@ public partial class ScheduleEditorWindow : Window
         item = new ScheduleItem();
         var title = TitleBox.Text.Trim();
         if (title.Length == 0) { return Fail(Loc.ScheduleTitleRequired, TitleBox); }
-        var kind = KindCombo.SelectedItem as ScheduleKind? ?? ScheduleKind.Other;
+        var kind = KindCombo.SelectedValue as ScheduleKind? ?? ScheduleKind.Other;
 
         var candidate = new ScheduleItem
         {
