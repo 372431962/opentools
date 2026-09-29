@@ -780,12 +780,13 @@ public partial class MainWindow : Window
         drawerOnLeft = drawerPlacement.OnLeft;
         drawerShiftedLeft = drawerOnLeft;
 
-        // 窗口一次改到位：日历列被钉住，多出来的宽度暂时空着，接着由列宽动画把抽屉填进去。
-        Left = drawerPlacement.Left;
-        Width = drawerPlacement.Width;
-        SetDrawerSide(DrawerWidth);
+        // 顺序要紧：先钉日历列，再改窗口宽度。反过来的话，窗口已经加宽而日历列还是星号宽，
+        // 那一帧日历会铺满整窗再被拽回钉住的宽度，视觉上就是宽度抖一下。
+        SetDrawerSide(calendarPinWidth, 0);
         Drawer.Visibility = Visibility.Visible;
         DrawerPanel.SetExpanded(true);
+        Left = drawerPlacement.Left;
+        Width = drawerPlacement.Width;
         BindPanels();
         AnimateDrawerColumn(0, DrawerWidth);
     }
@@ -803,7 +804,7 @@ public partial class MainWindow : Window
         AnimateDrawerColumn(DrawerWidth, 0, () =>
         {
             Drawer.Visibility = Visibility.Collapsed;
-            SetDrawerSide(0);
+            SetDrawerSide(0, 0);
             // 列已经收干净、日历也没动过，这时把窗口缩回去不会看到中间的裁切。
             // 位置按「开抽屉时左移了多少就右移多少」回退，而不是回到一个存档的绝对坐标：
             // 开着抽屉把挂件拖到别处再关闭，旧写法会把窗口拽回打开抽屉时的位置。
@@ -826,17 +827,17 @@ public partial class MainWindow : Window
     /// 把日历和抽屉摆到对应的列，并按列号分配宽度。
     /// 宽度必须跟着列号走而不是跟着 CalendarColumn 这个名字走：翻边后抽屉落在第 0 列，
     /// 若仍把日历宽度补给第 0 列，日历就会被挤进抽屉那 300px 里。
+    /// 日历列给 0 表示恢复星号、独占整个窗口；抽屉列给 0 表示收起。
     /// </summary>
-    private void SetDrawerSide(double drawerWidth)
+    private void SetDrawerSide(double calendarWidth, double drawerWidth)
     {
         Grid.SetColumn(Drawer, DrawerColumnIndex);
         Grid.SetColumn(CalendarHost, CalendarColumnIndex);
         Drawer.SetValue(Border.BorderThicknessProperty,
             drawerOnLeft ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0));
-        // 日历钉在原宽度上才不会跟着变宽；抽屉收起时日历恢复星号、独占整个窗口。
-        SplitGrid.ColumnDefinitions[CalendarColumnIndex].Width = drawerWidth <= 0
+        SplitGrid.ColumnDefinitions[CalendarColumnIndex].Width = calendarWidth <= 0
             ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(calendarPinWidth);
+            : new GridLength(calendarWidth);
         SplitGrid.ColumnDefinitions[DrawerColumnIndex].Width = new GridLength(drawerWidth);
     }
 
@@ -1046,7 +1047,7 @@ public partial class MainWindow : Window
         {
             drawerAnimation?.Stop();
             drawerAnimation = null;
-            SetDrawerSide(DrawerWidth);
+            SetDrawerSide(calendarPinWidth, DrawerWidth);
             Width = collapsedWidth + DrawerWidth;
             drawerPlacement = drawerPlacement with { Width = Width };
         }
@@ -1055,7 +1056,7 @@ public partial class MainWindow : Window
             drawerPlacement = DrawerGeometry.Open(Left, Width,
                 SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth, DrawerWidth);
             drawerOnLeft = drawerPlacement.OnLeft;
-            SetDrawerSide(0);
+            SetDrawerSide(0, 0);
             Left = drawerPlacement.Left;
             Width = drawerPlacement.Width;
             Drawer.Visibility = Visibility.Collapsed;
