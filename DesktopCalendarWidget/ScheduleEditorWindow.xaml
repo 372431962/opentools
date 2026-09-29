@@ -70,11 +70,10 @@
         </ScrollViewer>
 
         <Grid Grid.Row="2">
-            <Button x:Name="DeleteButton" HorizontalAlignment="Left" Padding="12,7" Click="DeleteButton_Click"/>
+            <Button x:Name="DeleteButton" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" Padding="12,7" Click="DeleteButton_Click"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button x:Name="CancelButton" Padding="14,8" IsCancel="True" Click="CancelButton_Click"/>
-                <Button x:Name="SaveButton" Padding="14,8" Margin="8,0,0,0" IsDefault="True"
-                        Background="#B44837" Foreground="White" Click="SaveButton_Click"/>
+                <Button x:Name="SaveButton" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" IsDefault="True" Click="SaveButton_Click"/>
             </StackPanel>
         </Grid>
     </Grid>

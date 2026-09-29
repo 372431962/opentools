@@ -124,7 +124,8 @@
         </ScrollViewer>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="{x:Static loc:Loc.CancelButton}" Padding="14,8" Click="CancelButton_Click"/>
-            <Button Content="{x:Static loc:Loc.SaveButton}" Padding="14,8" Margin="8,0,0,0" Background="#B44837" Foreground="White" Click="SaveButton_Click"/>
+            <!-- 强调色原先在这里硬编码成 #B44837，跟 Accent 画刷脱钩，改主题时这个按钮不跟着变。 -->
+            <Button Style="{StaticResource PrimaryButton}" Content="{x:Static loc:Loc.SaveButton}" Margin="8,0,0,0" Click="SaveButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

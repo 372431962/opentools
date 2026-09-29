@@ -28,32 +28,17 @@
                            Effect="{StaticResource TextShadow}"/>
             </StackPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <Button x:Name="AddButton" Content="+" Padding="9,3" Click="AddButton_Click"
-                        ToolTip="{x:Static loc:Loc.ScheduleAddButton}" Effect="{StaticResource TextShadow}"/>
                 <!--
-                    关闭按钮原来只是一个裸的「✕」字符。全局 Button 样式给了透明背景和零边框，
-                    挂在半透明挂件上几乎看不见，等于没有关闭入口。这里补上边框和底色，
-                    让它一眼就是个能按的按钮。
+                    关闭按钮原来只是一个裸的「✕」字符，透明底零边框挂在半透明挂件上几乎看不见，
+                    等于没有关闭入口；当时给它单写了一个 ControlTemplate 当补丁。
+                    现在 WidgetButton 已有悬停和按下态，补丁可以去掉，行为交给全局样式。
                 -->
-                <Button x:Name="CloseButton" Content="✕" Padding="8,2" Margin="6,0,0,0" Visibility="Collapsed"
+                <Button x:Name="AddButton" Style="{StaticResource WidgetButton}" Content="+" Padding="9,3" FontSize="15"
+                        Click="AddButton_Click" ToolTip="{x:Static loc:Loc.ScheduleAddButton}" Effect="{StaticResource TextShadow}"/>
+                <Button x:Name="CloseButton" Style="{StaticResource WidgetButton}" Content="✕" Padding="8,2" FontSize="12"
+                        Margin="6,0,0,0" Visibility="Collapsed"
                         Click="CloseButton_Click" ToolTip="{x:Static loc:Loc.ScheduleCloseButton}"
-                        Background="#40FFFFFF" BorderBrush="{StaticResource Border}" BorderThickness="1"
-                        FontSize="12">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="4">
-                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Bd" Property="Background" Value="#66FFFFFF"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
+                        Background="#26FFFFFF" BorderBrush="{StaticResource Border}"/>
             </StackPanel>
         </Grid>
 

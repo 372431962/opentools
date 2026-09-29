@@ -37,15 +37,15 @@
                             <TextBlock x:Name="TodaySummary" Margin="0,4,0,0" FontSize="14" TextWrapping="Wrap" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <Button x:Name="TodayButton" Content="{x:Static loc:Loc.TodayButton}" Click="TodayButton_Click" Margin="0,2,2,0" Padding="10,6" Effect="{StaticResource TextShadow}"/>
-                            <Button Content="⋯" FontSize="22" Width="40" Height="36" Padding="0" Click="MenuButton_Click" ToolTip="{x:Static loc:Loc.MenuButtonTip}" Effect="{StaticResource TextShadow}"/>
+                            <Button x:Name="TodayButton" Style="{StaticResource WidgetButton}" Content="{x:Static loc:Loc.TodayButton}" Click="TodayButton_Click" Margin="0,2,2,0" Padding="10,6" Effect="{StaticResource TextShadow}"/>
+                            <Button Style="{StaticResource IconButton}" Content="⋯" FontSize="22" Click="MenuButton_Click" ToolTip="{x:Static loc:Loc.MenuButtonTip}" Effect="{StaticResource TextShadow}"/>
                         </StackPanel>
                     </Grid>
                     <Grid Grid.Row="1" Margin="0,16,0,8" Background="Transparent">
                         <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition/></Grid.ColumnDefinitions>
-                        <Button Content="‹" FontSize="26" Width="44" Height="36" Click="PreviousButton_Click" ToolTip="{x:Static loc:Loc.PreviousMonthTip}" Effect="{StaticResource TextShadow}"/>
+                        <Button Style="{StaticResource IconButton}" Content="‹" FontSize="26" Click="PreviousButton_Click" ToolTip="{x:Static loc:Loc.PreviousMonthTip}" Effect="{StaticResource TextShadow}"/>
                         <TextBlock x:Name="MonthCaption" Grid.Column="1" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource WidgetMutedInk}" Effect="{StaticResource TextShadow}"/>
-                        <Button Grid.Column="2" Content="›" FontSize="26" Width="44" Height="36" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="{x:Static loc:Loc.NextMonthTip}" Effect="{StaticResource TextShadow}"/>
+                        <Button Style="{StaticResource IconButton}" Grid.Column="2" Content="›" FontSize="26" HorizontalAlignment="Right" Click="NextButton_Click" ToolTip="{x:Static loc:Loc.NextMonthTip}" Effect="{StaticResource TextShadow}"/>
                     </Grid>
                     <Grid x:Name="CalendarGrid" Grid.Row="2"/>
                     <!--

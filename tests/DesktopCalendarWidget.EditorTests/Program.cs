@@ -2,6 +2,7 @@ using DesktopCalendarWidget;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
+using System.Linq;
 
 internal static class Program
 {
@@ -116,6 +117,7 @@ internal static class Program
                 "all-day meeting still carries a time");
         });
         PanelSmoke.Run(Run);
+        ThemeSmoke.Run(Run, app);
 
         app.Shutdown();
         Console.WriteLine($"Tests: {tests}, failures: {failures}");
