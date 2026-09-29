@@ -194,6 +194,7 @@ internal static class Loc
     public static string WeatherPrivacyNote => Get(nameof(WeatherPrivacyNote));
     public static string WeatherTooltipFormat => Get(nameof(WeatherTooltipFormat));
     public static string WeatherPrecipFormat => Get(nameof(WeatherPrecipFormat));
+    public static string WeatherNowFormat => Get(nameof(WeatherNowFormat));
     public static string WeatherSourceFormat => Get(nameof(WeatherSourceFormat));
     public static string WeatherClear => Get(nameof(WeatherClear));
     public static string WeatherPartlyCloudy => Get(nameof(WeatherPartlyCloudy));

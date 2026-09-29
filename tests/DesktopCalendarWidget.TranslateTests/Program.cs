@@ -37,8 +37,11 @@ internal static class Program
         const string myMemoryQuota = """{"responseData":{"translatedText":"MYMEMORY WARNING: YOU USED ALL AVAILABLE FREE TRANSLATIONS FOR TODAY"} ,"responseStatus":200}""";
         const string openMeteoSample =
             """{"latitude":39.89,"current":{"time":"2026-09-21T09:00","weather_code":0},"daily":{"time":["2026-09-21","2026-09-22","2026-09-23"],"weather_code":[2,61,3],"temperature_2m_max":[28.4,19.2,21.0],"temperature_2m_min":[18.1,12.3,null],"precipitation_probability_max":[10,80,null]}}""";
-        const string wttrSample =
-            """{"current_condition":[{"weatherDesc":[{"value":"Smoky haze"}]}],"weather":[{"date":"2026-09-21","maxtempC":"28","mintempC":"18","hourly":[{"time":"0","weatherDesc":[{"value":"Overcast"}]},{"time":"1200","weatherDesc":[{"value":"Sunny"}]}]}]}""";
+        // wttr 的实况只挂在接口标的那一天上，样例日期必须用真今天，
+        // 否则 CurrentCondition 会按设计被判为「不在这几天里」而丢掉。
+        var wttrToday = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var wttrSample =
+            $$"""{"current_condition":[{"temp_C":"23","weatherDesc":[{"value":"Smoky haze"}]}],"weather":[{"date":"{{wttrToday}}","maxtempC":"28","mintempC":"18","hourly":[{"time":"0","weatherDesc":[{"value":"Overcast"}]},{"time":"1200","weatherDesc":[{"value":"Sunny"}]}]}]}""";
         const string geocodeSample =
             """{"results":[{"id":1,"name":"浦东新区","admin2":"上海市","admin1":"上海","country":"中国","latitude":31.22114,"longitude":121.5447},{"id":2,"name":"朝阳区","admin2":"北京市","admin1":"北京","country":"中国","latitude":39.9219,"longitude":116.4436}],"generationtime_ms":0.01}""";
         const string photonSample =
@@ -250,11 +253,44 @@ internal static class Program
         Run("current condition only replaces its matching date forecast", () =>
         {
             var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
-            var todayForecast = new WeatherDay { Date = today, Condition = WeatherCondition.Drizzle, CurrentCondition = WeatherCondition.Clear };
+            var todayForecast = new WeatherDay { Date = today, Condition = WeatherCondition.Drizzle, CurrentCondition = WeatherCondition.Clear, CurrentTemperature = 30.3, TempMax = 36.2, TempMin = 27.1 };
             var futureForecast = new WeatherDay { Date = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), Condition = WeatherCondition.Rain };
             Equal(WeatherCondition.Clear, todayForecast.ConditionFor(DateTime.Today), "today prefers current observation");
             Equal(WeatherCondition.Drizzle, todayForecast.ConditionFor(DateTime.Today.AddDays(1)), "today current observation does not leak into tomorrow");
             Equal(WeatherCondition.Rain, futureForecast.ConditionFor(DateTime.Today.AddDays(1)), "future keeps daily forecast");
+            // 「今天」只显示实况。显示当日最高温会让数字和窗外对不上：
+            // 早晚温差大的日子，最高 36℃ 而此刻 30℃，用户会以为数据不准。
+            Equal("30°", todayForecast.TemperatureFor(DateTime.Today), "today shows the live reading");
+            Equal("36/27°", todayForecast.TemperatureFor(DateTime.Today.AddDays(1)), "other days show the daily range");
+        });
+        Run("a day without a live reading falls back to the daily range", () =>
+        {
+            // 缓存是旧的、或者接口没给 current 温度时，今天也得有东西显示。
+            var today = DateTime.Today.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var day = new WeatherDay { Date = today, Condition = WeatherCondition.Clear, TempMax = 24.6, TempMin = 11.2 };
+            Equal("25/11°", day.TemperatureFor(DateTime.Today), "falls back to max/min");
+            var noTemperature = new WeatherDay { Date = today, Condition = WeatherCondition.Clear };
+            Equal("", noTemperature.TemperatureFor(DateTime.Today), "nothing to show when the interface gave no numbers");
+        });
+        Run("open-meteo reads the live temperature from the current block", () =>
+        {
+            // 真实响应：实况 30.3℃，而当日最高 36.2℃。这条锁住「今天用实况」这条规则。
+            var today = DateTime.Now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var yesterday = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var tomorrow = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+            var json = $$$"""
+                {"current":{"time":"{{{today}}}T18:00","interval":900,"weather_code":80,"temperature_2m":30.3},
+                 "daily":{"time":["{{{yesterday}}}","{{{today}}}","{{{tomorrow}}}"],"weather_code":[51,80,53],
+                 "temperature_2m_max":[35.5,36.2,35.6],"temperature_2m_min":[26.6,27.1,26.8],
+                 "precipitation_probability_max":[44,8,65]}}
+                """;
+            var days = OpenMeteoWeatherProvider.ParseResponse(json);
+            True(days is not null && days.Count == 3, "count");
+            Equal(30.3, days![1].CurrentTemperature ?? 0, "today carries the live reading");
+            Equal(WeatherCondition.HeavyRain, days[1].CurrentCondition, "today's live code wins over the daily one");
+            Equal("30°", days[1].TemperatureFor(DateTime.Today), "today shows the live reading, not the 36 degree high");
+            Equal(null, days[0].CurrentTemperature, "yesterday has no live reading");
+            Equal("36/27°", days[2].TemperatureFor(DateTime.Today.AddDays(1)), "tomorrow keeps the forecast range");
         });
         Run("open-meteo response rejects junk", () =>
             Equal(null, OpenMeteoWeatherProvider.ParseResponse("{\"daily\":{}}"), "parse"));
@@ -266,6 +302,7 @@ internal static class Program
             Equal(WeatherCondition.Fog, days[0].CurrentCondition, "current condition");
             Equal(28.0, days[0].TempMax, "max");
             Equal(18.0, days[0].TempMin, "min");
+            Equal(23.0, days[0].CurrentTemperature ?? 0, "current temperature");
         });
         Run("wttr url escapes the city", () =>
             True(WttrInWeatherProvider.BuildUrl("纽约 北京").Contains("%20", StringComparison.Ordinal), "escape"));

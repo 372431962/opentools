@@ -49,7 +49,9 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
         "https://api.open-meteo.com/v1/forecast" +
         $"?latitude={latitude.ToString("0.####", CultureInfo.InvariantCulture)}" +
         $"&longitude={longitude.ToString("0.####", CultureInfo.InvariantCulture)}" +
-        "&current=weather_code" +
+        // current 要带上 temperature_2m：只有 weather_code 的话，「今天」那格只能显示
+        // 当日最高温（36℃），而此刻体感 30℃，用户会以为数据不准。
+        "&current=weather_code,temperature_2m" +
         "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max" +
         $"&timezone=auto&past_days={PastDays}&forecast_days={ForecastDays}";
 
@@ -70,6 +72,9 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
             var current = document.RootElement.TryGetProperty("current", out var currentObject) &&
                 currentObject.ValueKind == JsonValueKind.Object ? currentObject : (JsonElement?)null;
             var currentCode = current is JsonElement currentValue ? NumberProperty(currentValue, "weather_code") : null;
+            var currentTemperature = current is JsonElement currentTemperatureValue
+                ? DoubleProperty(currentTemperatureValue, "temperature_2m")
+                : null;
             var currentDate = current is JsonElement currentTimeValue &&
                 currentTimeValue.TryGetProperty("time", out var timeValue) &&
                 timeValue.ValueKind == JsonValueKind.String &&
@@ -96,8 +101,11 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
                 };
                 var code = IntAt(codes, i);
                 day.Condition = code is null ? WeatherCondition.Unknown : WeatherCodes.FromWmo(code.Value);
-                if (string.Equals(normalizedDate, currentDate, StringComparison.Ordinal) && currentCode is int liveCode)
-                    day.CurrentCondition = WeatherCodes.FromWmo(liveCode);
+                if (string.Equals(normalizedDate, currentDate, StringComparison.Ordinal))
+                {
+                    if (currentCode is int liveCode) day.CurrentCondition = WeatherCodes.FromWmo(liveCode);
+                    if (currentTemperature is double liveTemperature) day.CurrentTemperature = liveTemperature;
+                }
                 if (day.DateValue != DateTime.MinValue) days.Add(day);
             }
             return days.Count == 0 ? null : days;
@@ -127,6 +135,11 @@ public sealed class OpenMeteoWeatherProvider : IWeatherProvider
         parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Array ? value : null;
     private static int? NumberProperty(JsonElement value, string name) =>
         value.TryGetProperty(name, out var item) && item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var parsed)
+            ? parsed
+            : null;
+
+    private static double? DoubleProperty(JsonElement value, string name) =>
+        value.TryGetProperty(name, out var item) && item.ValueKind == JsonValueKind.Number && item.TryGetDouble(out var parsed)
             ? parsed
             : null;
 

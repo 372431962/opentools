@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -186,6 +186,7 @@ The existing local data is still in use.</value></data>
   <data name="WeatherPrivacyNote" xml:space="preserve"><value>Weather is looked up by city; the city name is sent to a third-party service.</value></data>
   <data name="WeatherTooltipFormat" xml:space="preserve"><value>{0} {1}&#176;C ~ {2}&#176;C</value></data>
   <data name="WeatherPrecipFormat" xml:space="preserve"><value>precipitation {0}%</value></data>
+  <data name="WeatherNowFormat" xml:space="preserve"><value>now {0}&#176;C</value></data>
   <data name="WeatherSourceFormat" xml:space="preserve"><value>Weather source: {0}</value></data>
   <data name="WeatherClear" xml:space="preserve"><value>Clear</value></data>
   <data name="WeatherPartlyCloudy" xml:space="preserve"><value>Partly cloudy</value></data>

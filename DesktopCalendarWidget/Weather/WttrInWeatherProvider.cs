@@ -35,6 +35,7 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
                 weather.ValueKind != JsonValueKind.Array) return null;
 
             var currentCondition = WeatherCodes.FromDescription(DescribeCurrent(document.RootElement));
+            var currentTemperature = CurrentTemperature(document.RootElement);
             var days = new List<WeatherDay>();
             foreach (var item in weather.EnumerateArray())
             {
@@ -43,13 +44,17 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
                     dateValue.ValueKind != JsonValueKind.String) continue;
                 var date = dateValue.GetString();
                 if (string.IsNullOrEmpty(date)) continue;
+                var normalizedDate = DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
+                    ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    : date;
                 days.Add(new WeatherDay
                 {
-                    Date = DateTime.TryParse(date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-                        ? parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                        : date,
+                    Date = normalizedDate,
                     Condition = WeatherCodes.FromDescription(Describe(item)),
-                    CurrentCondition = days.Count == 0 && currentCondition != WeatherCondition.Unknown ? currentCondition : null,
+                    // 实时观测只挂在接口标的那一天上。原先用 days.Count == 0 假定第一条
+                    // 就是今天，但接口的起始日取决于请求时刻，跨时区或临近午夜时不一定。
+                    CurrentCondition = IsToday(normalizedDate) && currentCondition != WeatherCondition.Unknown ? currentCondition : null,
+                    CurrentTemperature = IsToday(normalizedDate) ? currentTemperature : null,
                     TempMax = DoubleValue(item, "maxtempC"),
                     TempMin = DoubleValue(item, "mintempC")
                 });
@@ -96,6 +101,19 @@ public sealed class WttrInWeatherProvider : IWeatherProvider
         if (!root.TryGetProperty("current_condition", out var current) ||
             current.ValueKind != JsonValueKind.Array || current.GetArrayLength() == 0) return null;
         return current[0].ValueKind == JsonValueKind.Object ? DescriptionValue(current[0]) : null;
+    }
+
+    /// <summary>接口给的实况按它自己的地点时钟记账，和本机可能差一天。</summary>
+    private static bool IsToday(string normalizedDate) =>
+        string.Equals(normalizedDate, DateTime.Now.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), StringComparison.Ordinal);
+
+    private static double? CurrentTemperature(JsonElement root)
+    {
+        if (!root.TryGetProperty("current_condition", out var current) ||
+            current.ValueKind != JsonValueKind.Array || current.GetArrayLength() == 0) return null;
+        if (current[0].ValueKind != JsonValueKind.Object) return null;
+        var value = DoubleValue(current[0], "temp_C");
+        return double.IsFinite(value) ? value : null;
     }
 
     private static string? DescriptionValue(JsonElement item)

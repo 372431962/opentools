@@ -48,6 +48,18 @@ public sealed class WeatherDay
     public WeatherCondition Condition { get; set; }
     /// <summary>当天实时天气现象。仅当天有值，缺失时回退到日预报现象。</summary>
     public WeatherCondition? CurrentCondition { get; set; }
+    /// <summary>
+    /// 当天此刻的气温（摄氏度）。仅当天有值，缺失时为 null。
+    ///
+    /// 和 TempMax 分开是有必要的：今天的格子只显示这个值。
+    /// 「今天」显示当日最高温是错的 —— 早晚温差大时，36℃ 的最高温和 30℃ 的体感
+    /// 差了六度，用户看到的数字和窗外完全对不上，以为数据不准。未来的日子没有
+    /// 实时观测，仍然显示最高/最低，那本来就是预报该给的东西。
+    ///
+    /// 用可空而不是 NaN：NaN 在没开 AllowNamedFloatingPointLiterals 的 JsonSerializer
+    /// 上会直接抛异常，而这个字段要能进出测试用的序列化器。
+    /// </summary>
+    public double? CurrentTemperature { get; set; }
     /// <summary>按日历日期选择现象：当天优先实时观测，其他日期使用日预报。</summary>
     public WeatherCondition ConditionFor(DateTime date) => date.Date == DateValue && CurrentCondition.HasValue
         ? CurrentCondition.Value
@@ -69,6 +81,14 @@ public sealed class WeatherDay
 
     [JsonIgnore]
     public bool HasTemperature => double.IsFinite(TempMax) && double.IsFinite(TempMin);
+
+    /// <summary>某一天该显示的温度文本。当天有实时观测就只显示它，否则显示最高/最低。</summary>
+    public string TemperatureFor(DateTime date)
+    {
+        if (date.Date == DateValue && CurrentTemperature is double current && double.IsFinite(current))
+            return $"{(int)Math.Round(current)}°";
+        return HasTemperature ? $"{(int)Math.Round(TempMax)}/{(int)Math.Round(TempMin)}°" : "";
+    }
 }
 
 /// <summary>一次拉取到的天气快照，同时也是本地缓存文件的格式。</summary>

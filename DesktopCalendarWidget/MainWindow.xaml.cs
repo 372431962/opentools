@@ -679,13 +679,16 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 格子上的天气那一行：现象图标 + 最高/最低温度。图标比温度大一号，隔着几米也能认出天气；
+    /// 格子上的天气那一行：现象图标 + 温度。图标比温度大一号，隔着几米也能认出天气；
     /// 两者都拿不到时返回 null，这一行直接不占高度。完整信息在悬停提示里。
+    ///
+    /// 温度走 TemperatureFor：今天显示实时气温，其余日子显示最高/最低。
     /// </summary>
     private UIElement? BuildWeatherLine(WeatherDay weather, DateTime date)
     {
         var icon = WeatherCodes.Icon(weather.ConditionFor(date));
-        var range = weather.HasTemperature ? $"{(int)Math.Round(weather.TempMax)}/{(int)Math.Round(weather.TempMin)}°" : null;
+        var temperature = weather.TemperatureFor(date);
+        var range = temperature.Length > 0 ? temperature : null;
         if (icon.Length == 0 && range is null) return null;
         if (range is null) return WeatherText(icon, 11);
         if (icon.Length == 0) return WeatherText(range, 10);
@@ -707,9 +710,16 @@ public partial class MainWindow : Window
     private static string BuildWeatherTip(WeatherDay weather, DateTime date)
     {
         var label = WeatherCodes.Label(weather.ConditionFor(date));
+        // 悬停是详情位，两种温度都给：实况和最高/最低的差值本身就是有用的信息
+        // （今天 30℃ 而最高 36℃，说明早晚温差大）。只给一个反而说不清。
+        var isToday = date.Date == weather.DateValue;
         var text = weather.HasTemperature
             ? Loc.Fmt(Loc.WeatherTooltipFormat, label, (int)Math.Round(weather.TempMin), (int)Math.Round(weather.TempMax))
             : label;
+        if (isToday && weather.CurrentTemperature is double current && double.IsFinite(current))
+        {
+            text = $"{text} · {Loc.Fmt(Loc.WeatherNowFormat, (int)Math.Round(current))}";
+        }
         if (weather.PrecipitationProbability is int probability)
             text = $"{text} · {Loc.Fmt(Loc.WeatherPrecipFormat, probability)}";
         return text;

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -186,6 +186,7 @@
   <data name="WeatherPrivacyNote" xml:space="preserve"><value>天气按城市查询，城市名会发送给第三方接口。</value></data>
   <data name="WeatherTooltipFormat" xml:space="preserve"><value>{0} {1}°C ~ {2}°C</value></data>
   <data name="WeatherPrecipFormat" xml:space="preserve"><value>降水 {0}%</value></data>
+  <data name="WeatherNowFormat" xml:space="preserve"><value>当前 {0}°C</value></data>
   <data name="WeatherSourceFormat" xml:space="preserve"><value>天气来源：{0}</value></data>
   <data name="WeatherClear" xml:space="preserve"><value>晴</value></data>
   <data name="WeatherPartlyCloudy" xml:space="preserve"><value>多云</value></data>
