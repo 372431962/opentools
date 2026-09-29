@@ -118,6 +118,7 @@ internal static class Program
         });
         PanelSmoke.Run(Run);
         ThemeSmoke.Run(Run, app);
+        CalendarCellFit.Run(Run);
 
         app.Shutdown();
         Console.WriteLine($"Tests: {tests}, failures: {failures}");

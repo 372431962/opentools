@@ -491,8 +491,8 @@ public partial class MainWindow : Window
         return new TextBlock
         {
             Text = names,
-            FontSize = 10,
-            MaxWidth = 90,
+            FontSize = 9,
+            MaxWidth = 72,
             TextTrimming = TextTrimming.CharacterEllipsis,
             HorizontalAlignment = HorizontalAlignment.Center,
             ToolTip = Loc.Fmt(Loc.CourseTodayFormat, items.Count, string.Join(Loc.NameSeparator, items.Select(x => x.Title))),
@@ -553,31 +553,36 @@ public partial class MainWindow : Window
         var weather = settings.ShowWeather && weatherMap.TryGetValue(date, out var found) ? found : null;
         var dayItems = SchedulesForDate(date);
 
+        // 格子是 640 宽 6 行高，内容有日期号、天气、课程摘要、农历、节日名五层。
+        // 五层全开要 89px，而格子里只有 61px，于是节日名被挤出格子、和下一行叠在一起。
+        // 改法是压字号，并把农历和节日名合并成一行：两者都是补充信息，节日是用户
+        // 特意打开开关要看的，所以节日优先，占了位置就不再看农历。
+        // 压完最坏情况 61px，格子内部 67px，留有余量。
+        // 字号一压，行与行之间就贴在一起了，所以给每层留 1px 的上边距，
+        // 这点余量本来就有，不额外占高度。
+        const double RowGap = 1;
         var stack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         var dateHeader = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
         dateHeader.Children.Add(new TextBlock
         {
             Text = date.Day.ToString(CultureInfo.InvariantCulture),
-            FontSize = 22,
+            FontSize = 17,
             FontWeight = isToday ? FontWeights.Bold : FontWeights.Normal,
             Effect = (Effect)FindResource("TextShadow")
         });
         if (dayItems.Count > 0)
-            dateHeader.Children.Add(new TextBlock { Text = $" ·{dayItems.Count}", FontSize = 11,
+            dateHeader.Children.Add(new TextBlock { Text = $" ·{dayItems.Count}", FontSize = 10,
                 Foreground = FindBrush("WidgetAccent"), VerticalAlignment = VerticalAlignment.Bottom });
         stack.Children.Add(dateHeader);
-        if (weather is not null && BuildWeatherLine(weather, date) is { } weatherLine) stack.Children.Add(weatherLine);
-        if (BuildCellScheduleLine(dayItems) is { } scheduleLine) stack.Children.Add(scheduleLine);
-        if (settings.ShowLunarEffective)
+        if (weather is not null && BuildWeatherLine(weather, date) is FrameworkElement weatherLine)
         {
-            stack.Children.Add(new TextBlock
-            {
-                Text = LunarCalendarConverter.Format(date),
-                FontSize = 14,
-                Foreground = FindBrush("WidgetMutedInk"),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Effect = (Effect)FindResource("TextShadow")
-            });
+            weatherLine.Margin = new Thickness(0, RowGap, 0, 0);
+            stack.Children.Add(weatherLine);
+        }
+        if (BuildCellScheduleLine(dayItems) is { } scheduleLine)
+        {
+            scheduleLine.Margin = new Thickness(0, RowGap, 0, 0);
+            stack.Children.Add(scheduleLine);
         }
 
         var marker = "";
@@ -596,14 +601,20 @@ public partial class MainWindow : Window
             marker = Loc.MarkerRest;
         }
 
-        if (marker.Length > 0)
+        // 农历和节日名共用这一行：有节日显示节日，没有才回退到农历。
+        var subLineText = marker.Length > 0 ? marker
+            : settings.ShowLunarEffective ? LunarCalendarConverter.Format(date) : "";
+        if (subLineText.Length > 0)
         {
             stack.Children.Add(new TextBlock
             {
-                Text = marker,
-                FontSize = 13,
-                Foreground = FindBrush(markerBrush),
+                Text = subLineText,
+                FontSize = 12,
+                Margin = new Thickness(0, RowGap, 0, 0),
+                Foreground = FindBrush(marker.Length > 0 ? markerBrush : "WidgetMutedInk"),
                 HorizontalAlignment = HorizontalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 72,
                 Effect = (Effect)FindResource("TextShadow")
             });
         }
@@ -654,11 +665,11 @@ public partial class MainWindow : Window
         var icon = WeatherCodes.Icon(weather.ConditionFor(date));
         var range = weather.HasTemperature ? $"{(int)Math.Round(weather.TempMax)}/{(int)Math.Round(weather.TempMin)}°" : null;
         if (icon.Length == 0 && range is null) return null;
-        if (range is null) return WeatherText(icon, 16);
-        if (icon.Length == 0) return WeatherText(range, 13);
+        if (range is null) return WeatherText(icon, 11);
+        if (icon.Length == 0) return WeatherText(range, 10);
         var line = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center };
-        line.Children.Add(WeatherText(icon, 16, new Thickness(0, 0, 4, 0)));
-        line.Children.Add(WeatherText(range, 13));
+        line.Children.Add(WeatherText(icon, 11, new Thickness(0, 0, 3, 0)));
+        line.Children.Add(WeatherText(range, 10));
         return line;
     }
 

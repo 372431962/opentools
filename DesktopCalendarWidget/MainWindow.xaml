@@ -53,8 +53,12 @@
                         于是底部区域的空态/列表态高度差被日历整块吸收：打开抽屉时底部区域会重绑到
                         抽屉那天的日期，有日程和没日程高度不同，日历就跟着跳一下。
                         固定高度后日历尺寸只由窗口大小决定，底部区域内部自己滚动。
+
+                        150px 时日历格子每行只剩 69px，而一格要放日期号、天气、课程摘要、
+                        农历和节日名五层，压完字号仍要 89px，节日名会溢出到相邻行。
+                        收到 112px 后每行 75px，装得下。
                     -->
-                    <Grid x:Name="BottomPanelHost" Grid.Row="3" Height="150" Margin="0,10,0,0">
+                    <Grid x:Name="BottomPanelHost" Grid.Row="3" Height="112" Margin="0,10,0,0">
                         <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                         <Border Height="1" Background="{StaticResource Border}"/>
                         <local:DayAgendaPanel x:Name="BottomPanel" Grid.Row="1" Margin="0,8,0,0"/>
