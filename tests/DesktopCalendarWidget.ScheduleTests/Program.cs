@@ -595,6 +595,42 @@ internal static class Program
             Equal(ScheduleKinds.All.Select(ScheduleKinds.Color).Distinct().Count(), 7, "colours stay distinct");
         });
 
+        Run("the drawer column and the calendar column fit the widened window", () =>
+        {
+            // 回归：日历列曾被钉在窗口宽度上，而 Chrome 有 52px 装饰，列宽总和超出可用宽度，
+            // Grid 按比例压扁两列，抽屉被截断、右对齐的关闭按钮被推出可视区。
+            // 这里模拟 MainWindow 的算法：钉住日历的真实布局宽度，窗口按抽屉宽度增长。
+            const double windowWidth = 640, drawerWidth = 300;
+            const double margin = 10, border = 1, padding = 16;
+            const double inset = 2 * (margin + border + padding);
+            var calendarWidth = windowWidth - inset;   // 铺满内容区时的真实宽度
+            var openedWidth = windowWidth + drawerWidth;
+
+            Equal(586, calendarWidth, "calendar content width excludes the chrome");
+            Equal(886, openedWidth - inset, "available width after widening");
+            Equal(calendarWidth + drawerWidth, openedWidth - inset,
+                "pinned calendar plus drawer exactly fills the widened window");
+            // 反例：钉窗口宽度就会超出 54px，Grid 只能压扁，日历会闪一下、抽屉会被裁。
+            Equal(54, (windowWidth + drawerWidth) - (openedWidth - inset),
+                "pinning the window width overshoots by the chrome inset");
+        });
+        Run("closing the drawer keeps a widget the user moved", () =>
+        {
+            // 回归：旧写法用打开抽屉时存下的绝对坐标还原位置，拖动挂件后再关闭会被拽回去。
+            // 现在按「开抽屉时左移了多少就右移多少」回退，作用于当前位置。
+            const double drawerWidth = 300;
+            // 贴右缘所以翻边，窗口被左移了抽屉宽度。
+            var rightEdge = 1920 - 640 - 2;
+            var opened = DrawerGeometry.Open(rightEdge, 640, 0, 1920, drawerWidth);
+            Equal(true, opened.OnLeft, "opened flipped to the left");
+            Equal(rightEdge - drawerWidth, opened.Left, "shifted left by the drawer width");
+            // 开着抽屉把挂件拖到 1500 再关闭：只补回那 300 的左移量，不回到 1278。
+            var movedTo = 1500;
+            Equal(movedTo + drawerWidth, movedTo + (opened.Left - rightEdge) * -1,
+                "close advances by the shift, it does not snap back to the open-time position");
+            Equal(640, opened.Width - drawerWidth, "width returns to the collapsed value");
+        });
+
         return Report();
     }
 

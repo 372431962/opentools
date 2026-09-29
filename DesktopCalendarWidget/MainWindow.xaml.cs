@@ -220,7 +220,8 @@ public partial class MainWindow : Window
             translateWindow.Close();
             translateWindow = null;
         }
-        settings.Left = Left;
+        // 抽屉开着时窗口被左移过，存档要记「收起时应该在的位置」，否则下次启动挂件会偏一段。
+        settings.Left = Left - AppliedLeftShift;
         settings.Top = Top;
         // 抽屉开着时存的是收起的宽度，否则下次启动挂件会凭空宽出一截。
         // 抽屉开着时窗口宽度里含抽屉那一段，配置里要存收起时的宽度。
@@ -710,6 +711,9 @@ public partial class MainWindow : Window
     // 动画：窗口宽度只改一次，不逐帧改。逐帧改 Window.Width 等于每帧一次 HWND resize，
     // 分层窗口（AllowsTransparency=True）要整棵视觉树重排，在这台机器上肉眼可见地掉帧。
     // 真正的动画交给抽屉列宽，那是纯 WPF 布局，合成器能顺畅地推完。
+    /// <summary>Chrome 的固定开销：Margin 10 两边 + BorderThickness 1 两边 + Padding 16 两边。</summary>
+    private const double ChromeInset = 2 * (10 + 1 + 16);
+
     private const double DrawerAnimationMs = 130;
     private const double DrawerFrameMs = 8;
 
@@ -720,9 +724,16 @@ public partial class MainWindow : Window
     /// <summary>右侧空间不够时抽屉改到日历左边，并把窗口往左推。</summary>
     private bool drawerOnLeft;
 
-    /// <summary>展开前的窗口宽度和位置，动画结束要用它们把窗口还原。</summary>
+    /// <summary>展开前的窗口宽度，关闭时用它把窗口缩回去。</summary>
     private double collapsedWidth;
-    private double collapsedLeft;
+    /// <summary>
+    /// 日历列在抽屉展开期间要钉住的宽度。这是日历的真实布局宽度，不是窗口宽度：
+    /// Chrome 还有 Margin 10 + BorderThickness 1 + Padding 16 共 52px 装饰。
+    /// 之前错钉成窗口宽度，列宽总和会超出可用宽度，Grid 按比例压扁两列，
+    /// 抽屉被截断、右对齐的关闭按钮被推出可视区，日历也跟着闪一下。
+    /// </summary>
+    private double calendarPinWidth;
+    private bool drawerShiftedLeft;
     /// <summary>关闭动画进行中。此时窗口还是宽的，再点日期必须从收起宽度算起，否则会再宽一格。</summary>
     private bool closingDrawer;
     private DateTime? selectedDate;
@@ -751,14 +762,23 @@ public partial class MainWindow : Window
         drawerDate = date.Date;
         selectedDate = date.Date;
         selectedScheduleId = null;
-        // 关闭动画还没跑完就又点日期的话，窗口此刻仍带着抽屉的宽度。
-        // 那时必须沿用收起的几何，否则「当前宽度 + 抽屉宽」会把窗口一次次叠宽。
-        collapsedWidth = closingDrawer ? collapsedWidth : Width;
-        collapsedLeft = closingDrawer ? collapsedLeft : Left;
+
+        // 关闭动画还没跑完就又点日期：窗口此刻仍带着抽屉带来的宽度和左移量。
+        // 这两项都要先还原成「收起状态」的几何，否则「当前宽度 + 抽屉宽」会把窗口一次次叠宽。
+        var wasClosing = closingDrawer;
+        var startLeft = wasClosing ? Left - AppliedLeftShift : Left;
+        var startWidth = wasClosing ? collapsedWidth : Width;
         closingDrawer = false;
-        drawerPlacement = DrawerGeometry.Open(collapsedLeft, collapsedWidth,
+        collapsedWidth = startWidth;
+
+        // 在动任何几何之前量一次：此刻抽屉还收着，日历铺满整个窗口内容区。
+        var measured = CalendarHost.ActualWidth;
+        calendarPinWidth = measured > 1 ? measured : Math.Max(1, startWidth - ChromeInset);
+
+        drawerPlacement = DrawerGeometry.Open(startLeft, startWidth,
             SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenWidth, DrawerWidth);
         drawerOnLeft = drawerPlacement.OnLeft;
+        drawerShiftedLeft = drawerOnLeft;
 
         // 窗口一次改到位：日历列被钉住，多出来的宽度暂时空着，接着由列宽动画把抽屉填进去。
         Left = drawerPlacement.Left;
@@ -769,6 +789,9 @@ public partial class MainWindow : Window
         BindPanels();
         AnimateDrawerColumn(0, DrawerWidth);
     }
+
+    /// <summary>抽屉展开时把窗口往左推的距离。没翻边就是 0。</summary>
+    private double AppliedLeftShift => drawerShiftedLeft ? DrawerWidth : 0;
 
     private void CloseDrawer()
     {
@@ -782,9 +805,11 @@ public partial class MainWindow : Window
             Drawer.Visibility = Visibility.Collapsed;
             SetDrawerSide(0);
             // 列已经收干净、日历也没动过，这时把窗口缩回去不会看到中间的裁切。
-            var closed = DrawerGeometry.Close(drawerPlacement, collapsedWidth);
-            Left = closed.Left;
+            // 位置按「开抽屉时左移了多少就右移多少」回退，而不是回到一个存档的绝对坐标：
+            // 开着抽屉把挂件拖到别处再关闭，旧写法会把窗口拽回打开抽屉时的位置。
+            Left += AppliedLeftShift;
             Width = collapsedWidth;
+            drawerShiftedLeft = false;
             closingDrawer = false;
         });
         BindPanels();
@@ -811,7 +836,7 @@ public partial class MainWindow : Window
         // 日历钉在原宽度上才不会跟着变宽；抽屉收起时日历恢复星号、独占整个窗口。
         SplitGrid.ColumnDefinitions[CalendarColumnIndex].Width = drawerWidth <= 0
             ? new GridLength(1, GridUnitType.Star)
-            : new GridLength(collapsedWidth);
+            : new GridLength(calendarPinWidth);
         SplitGrid.ColumnDefinitions[DrawerColumnIndex].Width = new GridLength(drawerWidth);
     }
 
