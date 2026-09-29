@@ -17,6 +17,8 @@
     <Compile Include="../../DesktopCalendarWidget/ScheduleKinds.cs" Link="Production/ScheduleKinds.cs" />
     <!-- 抽屉落位是纯计算，不依赖 WPF，放在这里连同日程推算一起测。 -->
     <Compile Include="../../DesktopCalendarWidget/DrawerGeometry.cs" Link="Production/DrawerGeometry.cs" />
+    <!-- 窗口摆位同理：屏幕不够高、存的值损坏这些分支构造真实窗口验起来太慢。 -->
+    <Compile Include="../../DesktopCalendarWidget/WindowPlacement.cs" Link="Production/WindowPlacement.cs" />
     <Compile Include="../../DesktopCalendarWidget/SettingsService.cs" Link="Production/SettingsService.cs" />
     <!-- Models 的语言开关读取 Loc，链接进来才能独立编译；测试不取资源文本。 -->
     <Compile Include="../../DesktopCalendarWidget/Loc.cs" Link="Production/Loc.cs" />

@@ -43,9 +43,14 @@ public sealed class WidgetSettings
     public double Left { get; set; } = 80;
     public double Top { get; set; } = 80;
 
-    /// <summary>窗口宽高。与位置一样记住，重启后不再被拉回默认尺寸。</summary>
+    /// <summary>
+    /// 窗口宽高。与位置一样记住，重启后不再被拉回默认尺寸。
+    /// 高度 940：日历格子 81px，够放下日期号、天气、课程摘要和节日名四层（最坏 61px）；
+    /// 同时给底部日程条留 150px，够看四条。之前 820 时两者只能分 61px 和 112px，
+    /// 结果是节日名被挤出格子、摘要区只剩两行。加高比让两者抢空间正确。
+    /// </summary>
     public double Width { get; set; } = 640;
-    public double Height { get; set; } = 820;
+    public double Height { get; set; } = 940;
 
     /// <summary>休息日模式，默认不标记。</summary>
     public RestPattern RestPattern { get; set; } = RestPattern.None;

@@ -109,6 +109,21 @@ public partial class MainWindow : Window
         trayIcon = new TrayIcon(windowHandle, BuildTrayToolTip(), Environment.ProcessPath);
     }
 
+    /// <summary>
+    /// 期望的最小窗口高度。820px 时日历格子和底部日程条只能分 61px 和 112px，
+    /// 节日名会溢出格子、摘要只剩两条；940px 两边都够。存的值比它矮就补到这个高度，
+    /// 但只在屏幕放得下时补，且绝不把用户特意调小过的窗口撑大回去。
+    /// </summary>
+    private const double PreferredWindowHeight = 940;
+
+    /// <summary>
+    /// 窗口所在那块屏的可用高度，取不到就退回虚拟屏幕总高。
+    /// 多屏上下拼起来时这两者差得很远，必须按窗口实际所在的那块屏算，
+    /// 否则窗口下半截会掉到屏幕外面去。
+    /// </summary>
+    private static double OwnScreenHeight(double left, double top, double fallback) =>
+        NativeMethods.TryGetWorkingArea(left, top, out var area) ? area.Height : fallback;
+
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
         settings = settingsService.Load();
@@ -126,7 +141,14 @@ public partial class MainWindow : Window
         MinWidth = Math.Min(MinWidth, Math.Max(1, screenWidth));
         MinHeight = Math.Min(MinHeight, Math.Max(1, screenHeight));
         Width = WindowPlacement.ClampSize(settings.Width, MinWidth, screenWidth);
-        Height = WindowPlacement.ClampSize(settings.Height, MinHeight, screenHeight);
+        // 存的高度偏矮就往上补到 PreferredHeight，让日历格子和底部日程条都够用；
+        // 屏幕上补不动就保持原样。详见 WindowPlacement.PreferredHeight 的说明。
+        //
+        // 上限取窗口所在那块屏，而不是 VirtualScreenHeight：后者是几块屏拼起来的
+        // 总高（这里 1440+1080=2520），拿它当上限会以为矮屏也放得下 940px，
+        // 结果窗口下半截跑到屏幕外面去。
+        var ownScreenHeight = OwnScreenHeight(settings.Left, settings.Top, screenHeight);
+        Height = WindowPlacement.PreferredHeight(settings.Height, MinHeight, ownScreenHeight, PreferredWindowHeight);
         Left = WindowPlacement.ClampPosition(settings.Left, SystemParameters.VirtualScreenLeft, screenWidth, Width, 80);
         Top = WindowPlacement.ClampPosition(settings.Top, SystemParameters.VirtualScreenTop, screenHeight, Height, 80);
         Topmost = settings.IsTopmost;

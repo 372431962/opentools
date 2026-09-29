@@ -14,13 +14,13 @@ using System.Linq;
 /// </summary>
 internal static class CalendarCellFit
 {
-    // 与 MainWindow.xaml 保持一致：820 高的窗口减去外框、页头、翻月行、
+    // 与 MainWindow.xaml 保持一致：940 高的窗口减去外框、页头、翻月行、
     // 底部日程条和图例，剩下的才是日历网格。
-    private const double WidgetHeight = 820;
+    private const double WidgetHeight = 940;
     private const double Chrome = 52;
     private const double Header = 78;
     private const double NavRow = 60;
-    private const double BottomStrip = 112;
+    private const double BottomStrip = 150;
     private const double Legend = 34;
     private const double WeekdayHeaderRow = 32;
     private const double CellChrome = 8;      // 格子自带的 Margin 3 + Padding 3 上下

@@ -547,6 +547,37 @@ internal static class Program
             Equal(true, flipped.OnLeft, "flips when hugging that monitor's right edge");
         });
 
+        Run("a short saved window is grown so the grid and the schedule strip both fit", () =>
+        {
+            // 820px 时格子只剩 61px，节日名会溢出；底部条也只能给两条。屏幕放得下就补到 940。
+            Equal(940.0, WindowPlacement.PreferredHeight(820, 400, 1050, 940), "grows a legacy 820px window");
+            Equal(940.0, WindowPlacement.PreferredHeight(400, 400, 1050, 940), "grows even a minimum-size window");
+        });
+
+        Run("a window the user already made tall is left alone", () =>
+        {
+            // 只往上补，绝不缩矮：用户把窗口拖小摆到桌面角落是他的选择。
+            Equal(1100.0, WindowPlacement.PreferredHeight(1100, 400, 1440, 940), "taller than desired stays put");
+            Equal(940.0, WindowPlacement.PreferredHeight(940, 400, 1440, 940), "exactly desired stays put");
+            Equal(960.0, WindowPlacement.PreferredHeight(960, 400, 1440, 940), "slightly taller stays put");
+        });
+
+        Run("a short screen cannot grow the window past the display", () =>
+        {
+            // 老笔记本 768px 高的屏放不下 940，保持原样并夹在屏幕内。
+            Equal(700.0, WindowPlacement.PreferredHeight(700, 400, 768, 940), "screen too short, leave it alone");
+            Equal(768.0, WindowPlacement.PreferredHeight(1200, 400, 768, 940), "already taller than the screen, clamp to it");
+            // 竖屏比窗口还窄的情况同理。
+            Equal(600.0, WindowPlacement.PreferredHeight(1000, 400, 600, 940), "clamped to a very short screen");
+        });
+
+        Run("a broken saved height does not produce a broken window", () =>
+        {
+            Equal(940.0, WindowPlacement.PreferredHeight(double.NaN, 400, 1050, 940), "NaN falls back and grows");
+            Equal(940.0, WindowPlacement.PreferredHeight(double.PositiveInfinity, 400, 1050, 940), "infinity clamps then grows");
+            Equal(940.0, WindowPlacement.PreferredHeight(-5, 400, 1050, 940), "negative falls back and grows");
+        });
+
         Run("switching days on an open drawer never resizes the window", () =>
         {
             // 回归：连点日期时窗口一格一格变宽。就是因为这里又跑了一次 Open。
